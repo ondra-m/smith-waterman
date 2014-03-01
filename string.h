@@ -8,7 +8,13 @@ class String : public std::string{
            String(std::string x);
           ~String();
 
+    String & operator=(const String & str);
+    String & operator=(const char* s);
+    String & operator=(char c);
+
     String bold();
+    String green();
+    
 };
 
 #endif

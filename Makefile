@@ -30,9 +30,20 @@ new_line:
 test1: test_run1
 test2: test_run2
 test3: test_run3
+test4: test_run4
+test5: test_run5
 
 test_run1:
-	./a.out text_1.txt
+	./a.out test_1.txt
 
 test_run2:
-	./a.out text_2.txt 2 -1 -1
+	./a.out test_2.txt 2 -1 -1
+
+test_run3:
+	./a.out test_3.txt 2 -1 -1
+
+test_run4:
+	./a.out test_4.txt
+
+test_run5:
+	./a.out test_5.txt

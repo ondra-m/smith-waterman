@@ -10,7 +10,7 @@ using namespace std;
 
 // -------------------------------------------------------------------------------------------
 
-const short int DEBUG_LEVEL = 2;
+const short int DEBUG_LEVEL = 1;
 
 // DEFAULT
 int MATCH       =  5;
@@ -50,8 +50,10 @@ int main(int argc, char * argv[]){
   matrix.load(argv[1]);
   matrix.prepare();
   matrix.fill();
+  matrix.find_path();
 
-  matrix.print();
+  // matrix.print();
+  matrix.print_result();
 
   return 0;
 }

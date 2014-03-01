@@ -16,7 +16,15 @@ class Matrix{
   int size_x;
   int size_y;
 
+  int max_value;
+
+  String result_line1;
+  String result_line2;
+
   std::vector< std::vector<short int> > matrix;
+  std::vector< std::vector<short int> > directions;
+
+  std::vector< std::pair<int, int> > path_indexes;
 
   public:
          Matrix();
@@ -25,13 +33,15 @@ class Matrix{
     bool load(char * file_name);
     bool prepare();
     bool fill();
+    bool find_path();
 
-    int get_value(int match, int deletion, int insertion);
-    int get_match(int i, int j);
-    int get_deletion(int i, int j);
-    int get_insertion(int i, int j);
+    int get(int match, int deletion, int insertion, int &direction);
+    int get_match(int x, int y);
+    int get_deletion(int x, int y);
+    int get_insertion(int x, int y);
 
     void print();
+    void print_result();
 };
 
 #endif
