@@ -2,6 +2,7 @@
 #define _MATRIX_H
 
 class String;
+class BitArray;
 
 extern int PRINT_LEVEL;
 extern int GAP_PENALTY;
@@ -21,8 +22,10 @@ class Matrix{
   String result_line1;
   String result_line2;
 
-  std::vector< std::vector<short int> > matrix;
-  std::vector< std::vector<short int> > directions;
+  std::vector<BitArray> directions;
+
+  std::vector<unsigned short int> prev_row;
+  std::vector<unsigned short int> current_row;
 
   std::vector< std::pair<int, int> > path_indexes;
 
@@ -37,8 +40,8 @@ class Matrix{
 
     int get(int match, int deletion, int insertion, int &direction);
     int get_match(int x, int y);
-    int get_deletion(int x, int y);
-    int get_insertion(int x, int y);
+    int get_deletion(int x);
+    int get_insertion(int x);
 
     void print();
     void print_result();

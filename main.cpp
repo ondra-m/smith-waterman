@@ -1,10 +1,14 @@
+// test2 segmentation
+
 #include <stdlib.h>
 #include <iostream>
 #include <string>
 #include <vector>
+#include <bitset>
 
 #include "string.h"
 #include "matrix.h"
+#include "bit_array.h"
 
 using namespace std;
 
@@ -42,7 +46,9 @@ void show_settings(){
 // -------------------------------------------------------------------------------------------
 
 int main(int argc, char * argv[]){
-  
+
+  // BitArray::test();
+
   parse_args(argc, argv);
   show_settings();
 

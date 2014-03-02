@@ -14,6 +14,7 @@ class String : public std::string{
 
     String bold();
     String green();
+    String red();
     
 };
 

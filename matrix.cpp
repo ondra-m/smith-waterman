@@ -8,6 +8,7 @@
 #include "string.h"
 #include "matrix.h"
 #include "matrix_file.h"
+#include "bit_array.h"
 
 using namespace std;
 
@@ -56,41 +57,39 @@ bool Matrix::load(char * file1, char * file2){
 // -------------------------------------------------------------------------------------------
 
 bool Matrix::prepare(){
-  matrix.resize(size_x);
   directions.resize(size_x);
 
   for(int x=0; x<size_x; x++){
-    matrix[x].resize(size_y);
-    directions[x].resize(size_y);
+    directions[x].make(2, size_y, 0);
   }
 
-  for(int x=0; x<size_x; x++){ matrix[x][0] = 0; }
-  for(int y=0; y<size_y; y++){ matrix[0][y] = 0; }
-
-  for(int x=0; x<size_x; x++){
-    for(int y=0; y<size_y; y++){
-      directions[x][y] = 0;
-    }
-  }
+  // for(int x=0; x<size_x; x++){
+  //   for(int y=0; y<size_y; y++){
+  //     directions[x][y] = 0;
+  //   }
+  // }
 }
 
 // -------------------------------------------------------------------------------------------
 
 bool Matrix::fill(){
+  prev_row.resize(size_x, 0);
+  current_row.resize(size_x, 0);
 
   for(int y=1; y<size_y; y++){
+
     for(int x=1; x<size_x; x++){
 
       int direction;
       
       int match     = get_match(x, y);
-      int deletion  = get_deletion(x, y);
-      int insertion = get_insertion(x, y);
+      int deletion  = get_deletion(x);
+      int insertion = get_insertion(x);
 
       int value = get(match, deletion, insertion, direction);
 
-      matrix[x][y] = value;
-      directions[x][y] = direction;
+      current_row[x] = value;
+      directions[x].set(y, direction);
 
       // member coordinates of larges number
       if(value >= max_value){
@@ -99,6 +98,7 @@ bool Matrix::fill(){
         path_indexes[0].first  = x;
         path_indexes[0].second = y;
       }
+
 
       if(PRINT_LEVEL >= 6){
         cout << x << " " << y << "   " 
@@ -109,8 +109,12 @@ bool Matrix::fill(){
              << value << endl;
 
         if((y+1) == size_y){ cout << "---------------------------" << endl; }
-      }      
+      }
+
+
     }
+
+    current_row.swap(prev_row);
     
   }
 }
@@ -125,11 +129,11 @@ bool Matrix::fill(){
 //  _______________________
 // |           |           |
 // |   match   | insertion |
-// |    001    |    010    |
+// |    01     |    10     |
 // |___________|___________|
 // |           |↖    ↑     |
 // | deletion  |           |
-// |    100    |←    D     |
+// |    11     |←    D     |
 // |___________|___________|
 //
 int Matrix::get(int match, int deletion, int insertion, int &direction){
@@ -138,9 +142,9 @@ int Matrix::get(int match, int deletion, int insertion, int &direction){
 
   direction = 0;
 
-  if(_max == match)     { direction += 1; }
-  if(_max == insertion) { direction += 2; }
-  if(_max == deletion)  { direction += 4; }
+  if     (_max == match)     { direction = 1; }
+  else if(_max == insertion) { direction = 2; }
+  else if(_max == deletion)  { direction = 3; }
 
   return _max;
 }
@@ -150,21 +154,21 @@ int Matrix::get(int match, int deletion, int insertion, int &direction){
 //
 int Matrix::get_match(int x, int y){
 
-  return matrix[x-1][y-1] + (sequence_1[x-1] == sequence_2[y-1] ? MATCH : MISMATCH);
+  return prev_row[x-1] + (sequence_1[x-1] == sequence_2[y-1] ? MATCH : MISMATCH);
 }
 
 // -------------------------------------------------------------------------------------------
 
-int Matrix::get_deletion(int x, int y){
+int Matrix::get_deletion(int x){
 
-  return matrix[x-1][y] + GAP_PENALTY;
+  return current_row[x-1] + GAP_PENALTY;
 }
 
 // -------------------------------------------------------------------------------------------
 
-int Matrix::get_insertion(int x, int y){
+int Matrix::get_insertion(int x){
 
-  return matrix[x][y-1] + GAP_PENALTY;
+  return prev_row[x] + GAP_PENALTY;
 }
 
 // -------------------------------------------------------------------------------------------
@@ -176,29 +180,30 @@ bool Matrix::find_path(){
 
   do{
 
-    if((directions[x][y] & 1) == 1){
+    if(directions[x].compare(y, 1)){
       x--;
       y--;
 
       result_line1 += sequence_1[x];
       result_line2 += sequence_2[y];
     }
-    else if((directions[x][y] & 2) == 2){
+    else if(directions[x].compare(y, 2)){
       y--;
 
       result_line1 += "-";
       result_line2 += sequence_2[y];
     }
-    else if((directions[x][y] & 4) == 4){
+    else if(directions[x].compare(y, 3)){
       x--;
 
       result_line1 += sequence_1[x];
       result_line2 += "-";
     }
+    else{
+      break;
+    }
 
     path_indexes.push_back(make_pair(x, y));
-
-    if(matrix[x][y] == 0){ break; }
 
   } while(true);
 
@@ -309,43 +314,43 @@ void Matrix::print_path(){
 void Matrix::print_matrices(){
   String txt;
 
-  // Filed matrix
-  // --------------------------------------------
-  txt = "Filled matrix:";
+  // // Filed matrix
+  // // --------------------------------------------
+  // txt = "Filled matrix:";
 
-  cout << endl;
-  cout << txt.bold() << endl;
+  // cout << endl;
+  // cout << txt.bold() << endl;
 
-  // vertical header
-  cout << "          ";
-  for(int i=0; i<sequence_1.size(); i++){
-    cout << "  " << setw(2) << (i+1);
-  }
-  cout << endl;
+  // // vertical header
+  // cout << "          ";
+  // for(int i=0; i<sequence_1.size(); i++){
+  //   cout << "  " << setw(2) << (i+1);
+  // }
+  // cout << endl;
 
-  cout << "          ";
-  for(int i=0; i<sequence_1.size(); i++){
-    txt = sequence_1[i];
-    cout << "   " << txt.bold();
-  }
-  cout << endl << endl;
+  // cout << "          ";
+  // for(int i=0; i<sequence_1.size(); i++){
+  //   txt = sequence_1[i];
+  //   cout << "   " << txt.bold();
+  // }
+  // cout << endl << endl;
 
 
-  for(int y=1; y<size_y; y++){
-    cout << "     ";
+  // for(int y=1; y<size_y; y++){
+  //   cout << "     ";
 
-    for(int x=1; x<size_x; x++){
-      // horizontal header
-      if(x == 1){
-        txt = sequence_2[y-1];
-        cout << setw(2) << (y) << " " << txt.bold() << " ";
-      }
+  //   for(int x=1; x<size_x; x++){
+  //     // horizontal header
+  //     if(x == 1){
+  //       txt = sequence_2[y-1];
+  //       cout << setw(2) << (y) << " " << txt.bold() << " ";
+  //     }
 
-      cout << " " << setw(3) << matrix[x][y];
-    }
+  //     cout << " " << setw(3) << matrix[x][y];
+  //   }
 
-    cout << endl;
-  }
+  //   cout << endl;
+  // }
 
 
 
@@ -356,15 +361,37 @@ void Matrix::print_matrices(){
   cout << endl << endl;
   cout << txt.bold() << endl;
 
+  // vertical header
+  cout << "       ";
+  for(int i=0; i<sequence_1.size(); i++){
+    cout << "  " << (i+1);
+  }
+  cout << endl;
+
+  cout << "       ";
+  for(int i=0; i<sequence_1.size(); i++){
+    txt = sequence_1[i];
+    cout << "  " << txt.bold();
+  }
+  cout << endl << endl;
+
   for(int y=1; y<size_y; y++){
     cout << "   ";
 
     for(int x=1; x<size_x; x++){
+
+      // horizontal header
+      if(x == 1){
+        txt = sequence_2[y-1];
+        cout << y << " " << txt.bold() << " ";
+      }
+
       txt = "";
 
-      if((directions[x][y] & 4) == 4){ txt += "←"; } else { txt += " "; }
-      if((directions[x][y] & 1) == 1){ txt += "↖"; } else { txt += " "; }
-      if((directions[x][y] & 2) == 2){ txt += "↑"; } else { txt += " "; }
+      if(directions[x].compare(y, 1)){ txt = "↖"; }
+      else if(directions[x].compare(y, 2)){ txt = "↑"; }
+      else if(directions[x].compare(y, 3)){ txt = "←"; }
+      else { txt = " "; }
 
       cout << "  " << txt;
     }

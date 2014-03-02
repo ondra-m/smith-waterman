@@ -1,10 +1,10 @@
 CC     = g++
-# CFLAGS = -O3
+CFLAGS = -O3
 
 all: clean main clean2 new_line
 
-main: main.o matrix.o matrix_file.o string.o
-	$(CC) $(CFLAGS) main.o matrix.o matrix_file.o string.o -o a.out
+main: main.o matrix.o matrix_file.o string.o bit_array.o
+	$(CC) $(CFLAGS) main.o matrix.o matrix_file.o string.o bit_array.o -o a.out
 
 main.o: main.cpp
 	$(CC) $(CFLAGS) -c main.cpp -o main.o
@@ -17,6 +17,9 @@ matrix_file.o: matrix_file.cpp
 
 string.o: string.cpp
 	$(CC) $(CFLAGS) -c string.cpp -o string.o
+
+bit_array.o: bit_array.cpp
+	$(CC) $(CFLAGS) -c bit_array.cpp -o bit_array.o
 
 clean:
 	rm -f *.o
