@@ -30,20 +30,24 @@ Matrix::~Matrix(){}
 
 // -------------------------------------------------------------------------------------------
 
-bool Matrix::load(char * file_name){
-  MatrixFile file(file_name);
+bool Matrix::load(char * file1, char * file2){
+  MatrixFile file;
+
+  file.set(file1);
   file.open();
-
   sequence_1 = file.get_line();
-  sequence_2 = file.get_line();
+  file.close();
 
-  if(DEBUG_LEVEL > 0){
+  file.set(file2);
+  file.open();
+  sequence_2 = file.get_line();
+  file.close();
+
+  if(PRINT_LEVEL >= 4){
     cout << "Sequence 1: " << sequence_1.bold() << endl;
     cout << "Sequence 2: " << sequence_2.bold() << endl;
     cout << endl;
   }
-
-  file.close();
 
   size_x = sequence_1.size() + 1;
   size_y = sequence_2.size() + 1;
@@ -96,7 +100,7 @@ bool Matrix::fill(){
         path_indexes[0].second = y;
       }
 
-      if(DEBUG_LEVEL > 1){
+      if(PRINT_LEVEL >= 6){
         cout << x << " " << y << "   " 
              << sequence_1[x-1] << " " << sequence_2[y-1] << "   "
              << setw(2) << match << " " 
@@ -210,6 +214,99 @@ bool Matrix::find_path(){
 // -------------------------------------------------------------------------------------------
 
 void Matrix::print(){
+
+  switch(PRINT_LEVEL){
+    case 6:
+    case 5:
+    case 4:
+    case 3: print_matrices();
+    case 2: print_path();
+    case 1: print_result_sequence();
+    case 0: print_result();
+  }
+}
+
+// -------------------------------------------------------------------------------------------
+
+void Matrix::print_result(){
+
+  cout << "\nBest score: " << max_value << endl;
+}
+
+// -------------------------------------------------------------------------------------------
+
+void Matrix::print_result_sequence(){
+  String txt("Result:");
+
+  int front_x = path_indexes.front().first;
+  int front_y = path_indexes.front().second;
+
+  int max_front = max(front_x, front_y);
+
+  int back_x = path_indexes.back().first;
+  int back_y = path_indexes.back().second;
+
+  int back_size = abs(back_x - back_y);
+
+  cout << endl << endl;
+  cout << txt.bold() << endl;
+
+  // Sequence 1
+  txt = "";
+  txt.resize(max_front, '-');
+  for(int i=0; i<front_x; i++){
+    txt[max_front-i-1] = sequence_1[i];
+  }
+
+  cout << "    " << txt << result_line1.bold().green();
+
+  txt = "";
+  txt.resize(back_size, '-');
+  for(int i=0; (i+back_x)<sequence_1.size(); i++){
+    txt[i] = sequence_1[i+back_x];
+  }
+
+  cout << txt << endl;
+
+
+
+  // Sequence 2
+  txt = "";
+  txt.resize(max_front, '-');
+  for(int i=0; i<front_y; i++){
+    txt[max_front-i-1] = sequence_2[i];
+  }
+
+  cout << "    " << txt << result_line2.bold().green();
+
+  txt = "";
+  txt.resize(back_size, '-');
+  for(int i=0; (i+back_y)<sequence_2.size(); i++){
+    txt[i] = sequence_2[i+back_y];
+  }
+
+  cout << txt << endl;
+}
+
+
+// -------------------------------------------------------------------------------------------
+
+void Matrix::print_path(){
+  String txt("Path:");
+
+  cout << endl << endl;
+  cout << txt.bold() << endl;
+
+  cout << "     ";
+  for(std::vector< pair<int,int> >::iterator it=path_indexes.begin(); it!=path_indexes.end(); ++it){
+    cout << " → [" << (*it).first << "," << (*it).second << "]";
+  }
+  cout << endl;
+}
+
+// -------------------------------------------------------------------------------------------
+
+void Matrix::print_matrices(){
   String txt;
 
   // Filed matrix
@@ -274,81 +371,6 @@ void Matrix::print(){
 
     cout << endl;
   }
-
-
-
-  // Path
-  // --------------------------------------------
-  txt = "Path:";
-
-  cout << endl << endl;
-  cout << txt.bold() << endl;
-
-  cout << "     ";
-  for(std::vector< pair<int,int> >::iterator it=path_indexes.begin(); it!=path_indexes.end(); ++it){
-    cout << " → [" << (*it).first << "," << (*it).second << "]";
-  }
-  cout << endl;
-}
-
-// -------------------------------------------------------------------------------------------
-
-void Matrix::print_result(){
-
-  String txt("Result:");
-
-  int front_x = path_indexes.front().first;
-  int front_y = path_indexes.front().second;
-
-  int max_front = max(front_x, front_y);
-
-  int back_x = path_indexes.back().first;
-  int back_y = path_indexes.back().second;
-
-  int back_size = abs(back_x - back_y);
-
-
-
-  cout << endl << endl;
-  cout << txt.bold() << endl;
-
-  // Sequence 1
-  txt = "";
-  txt.resize(max_front, '-');
-  for(int i=0; i<front_x; i++){
-    txt[max_front-i-1] = sequence_1[i];
-  }
-
-  cout << "    " << txt << result_line1.bold().green();
-
-  txt = "";
-  txt.resize(back_size, '-');
-  for(int i=0; (i+back_x)<sequence_1.size(); i++){
-    txt[i] = sequence_1[i+back_x];
-  }
-
-  cout << txt << endl;
-
-
-
-  // Sequence 2
-  txt = "";
-  txt.resize(max_front, '-');
-  for(int i=0; i<front_y; i++){
-    txt[max_front-i-1] = sequence_2[i];
-  }
-
-  cout << "    " << txt << result_line2.bold().green();
-
-  txt = "";
-  txt.resize(back_size, '-');
-  for(int i=0; (i+back_y)<sequence_2.size(); i++){
-    txt[i] = sequence_2[i+back_y];
-  }
-
-  cout << txt << endl;
-
-  cout << "\n    Best score: " << max_value << endl;
 }
 
 // -------------------------------------------------------------------------------------------

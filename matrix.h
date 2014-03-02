@@ -3,7 +3,7 @@
 
 class String;
 
-extern const short int DEBUG_LEVEL;
+extern int PRINT_LEVEL;
 extern int GAP_PENALTY;
 extern int MATCH;
 extern int MISMATCH;
@@ -30,7 +30,7 @@ class Matrix{
          Matrix();
         ~Matrix();
 
-    bool load(char * file_name);
+    bool load(char * file1, char * file2);
     bool prepare();
     bool fill();
     bool find_path();
@@ -42,6 +42,9 @@ class Matrix{
 
     void print();
     void print_result();
+    void print_result_sequence();
+    void print_path();
+    void print_matrices();
 };
 
 #endif

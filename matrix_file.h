@@ -7,8 +7,10 @@ class MatrixFile{
   std::ifstream file;
 
   public:
-            MatrixFile(char * file_name);
+            MatrixFile();
            ~MatrixFile();
+
+    void     set(char * file_name);
 
     bool    open();
     bool is_open();

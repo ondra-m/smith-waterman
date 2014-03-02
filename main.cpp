@@ -10,9 +10,8 @@ using namespace std;
 
 // -------------------------------------------------------------------------------------------
 
-const short int DEBUG_LEVEL = 1;
-
 // DEFAULT
+int PRINT_LEVEL =  4;
 int MATCH       =  5;
 int MISMATCH    = -3;
 int GAP_PENALTY = -4;
@@ -21,17 +20,18 @@ int GAP_PENALTY = -4;
 
 void parse_args(int argc, char * argv[]){
   switch(argc){
-    case 5: GAP_PENALTY = atoi(argv[4]);
-    case 4: MISMATCH    = atoi(argv[3]);
-    case 3: MATCH       = atoi(argv[2]);
+    case 7: PRINT_LEVEL = atoi(argv[6]);
+    case 6: GAP_PENALTY = atoi(argv[5]);
+    case 5: MISMATCH    = atoi(argv[4]);
+    case 4: MATCH       = atoi(argv[3]);
   }
 }
 
 // -------------------------------------------------------------------------------------------
 
 void show_settings(){
-  if(DEBUG_LEVEL > 0){
-    cout << "DEBUG_LEVEL: " << DEBUG_LEVEL << endl;
+  if(PRINT_LEVEL >= 5){
+    cout << "PRINT_LEVEL: " << PRINT_LEVEL << endl;
     cout << "MATCH: " << MATCH << endl;
     cout << "MISMATCH: " << MISMATCH << endl;
     cout << "GAP_PENALTY: " << GAP_PENALTY << endl;
@@ -47,13 +47,12 @@ int main(int argc, char * argv[]){
   show_settings();
 
   Matrix matrix;
-  matrix.load(argv[1]);
+  matrix.load(argv[1], argv[2]);
   matrix.prepare();
   matrix.fill();
   matrix.find_path();
 
-  // matrix.print();
-  matrix.print_result();
+  matrix.print();
 
   return 0;
 }
