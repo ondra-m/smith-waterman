@@ -62,31 +62,26 @@ bool Matrix::prepare(){
   for(int x=0; x<size_x; x++){
     directions[x].make(2, size_y, 0);
   }
-
-  // for(int x=0; x<size_x; x++){
-  //   for(int y=0; y<size_y; y++){
-  //     directions[x][y] = 0;
-  //   }
-  // }
 }
 
 // -------------------------------------------------------------------------------------------
 
 bool Matrix::fill(){
+
+  unsigned long match, deletion, insertion, value;
+  int direction;
+
   prev_row.resize(size_x, 0);
   current_row.resize(size_x, 0);
 
   for(int y=1; y<size_y; y++){
-
     for(int x=1; x<size_x; x++){
 
-      int direction;
-      
-      int match     = get_match(x, y);
-      int deletion  = get_deletion(x);
-      int insertion = get_insertion(x);
+      match     = get_match(x, y);
+      deletion  = get_deletion(x);
+      insertion = get_insertion(x);
 
-      int value = get(match, deletion, insertion, direction);
+      value = get(match, deletion, insertion, direction);
 
       current_row[x] = value;
       directions[x].set(y, direction);
@@ -99,7 +94,7 @@ bool Matrix::fill(){
         path_indexes[0].second = y;
       }
 
-
+      // DEBUG ##############################################################
       if(PRINT_LEVEL >= 6){
         cout << x << " " << y << "   " 
              << sequence_1[x-1] << " " << sequence_2[y-1] << "   "
@@ -110,12 +105,10 @@ bool Matrix::fill(){
 
         if((y+1) == size_y){ cout << "---------------------------" << endl; }
       }
-
+      // END DEBUG ##########################################################
 
     }
-
     current_row.swap(prev_row);
-    
   }
 }
 
@@ -136,9 +129,9 @@ bool Matrix::fill(){
 // |    11     |←    D     |
 // |___________|___________|
 //
-int Matrix::get(int match, int deletion, int insertion, int &direction){
+unsigned long Matrix::get(unsigned long match, unsigned long deletion, unsigned long insertion, int &direction){
 
-  int _max = max(0, max(match, max(deletion, insertion)));
+  unsigned long _max = max((unsigned long)0, max(match, max(deletion, insertion)));
 
   direction = 0;
 
@@ -152,21 +145,21 @@ int Matrix::get(int match, int deletion, int insertion, int &direction){
 // -------------------------------------------------------------------------------------------
 // Matrix have +1 fields than sequence
 //
-int Matrix::get_match(int x, int y){
+unsigned long Matrix::get_match(int x, int y){
 
   return prev_row[x-1] + (sequence_1[x-1] == sequence_2[y-1] ? MATCH : MISMATCH);
 }
 
 // -------------------------------------------------------------------------------------------
 
-int Matrix::get_deletion(int x){
+unsigned long Matrix::get_deletion(int x){
 
   return current_row[x-1] + GAP_PENALTY;
 }
 
 // -------------------------------------------------------------------------------------------
 
-int Matrix::get_insertion(int x){
+unsigned long Matrix::get_insertion(int x){
 
   return prev_row[x] + GAP_PENALTY;
 }

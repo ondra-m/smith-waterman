@@ -6,3 +6,5 @@ test6:
 
 test7:
   classic run: > 25 GB memory
+  optimized: 1,5 GB memory
+             494,68s

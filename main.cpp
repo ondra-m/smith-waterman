@@ -1,5 +1,3 @@
-// test2 segmentation
-
 #include <stdlib.h>
 #include <iostream>
 #include <string>
