@@ -6,15 +6,15 @@
 #include <string>
 
 #include "string.h"
-#include "matrix.h"
-#include "matrix_file.h"
+#include "smith_waterman.h"
+#include "dna_file.h"
 #include "bit_array.h"
 
 using namespace std;
 
 // -------------------------------------------------------------------------------------------
 
-Matrix::Matrix(){
+SmithWaterman::SmithWaterman(){
   max_value = 0;
 
   result_line1 = "";
@@ -27,12 +27,12 @@ Matrix::Matrix(){
 
 // -------------------------------------------------------------------------------------------
 
-Matrix::~Matrix(){}
+SmithWaterman::~SmithWaterman(){}
 
 // -------------------------------------------------------------------------------------------
 
-bool Matrix::load(char * file1, char * file2){
-  MatrixFile file;
+bool SmithWaterman::load(char * file1, char * file2){
+  DNAFile file;
 
   file.set(file1);
   file.open();
@@ -56,7 +56,7 @@ bool Matrix::load(char * file1, char * file2){
 
 // -------------------------------------------------------------------------------------------
 
-bool Matrix::prepare(){
+bool SmithWaterman::prepare(){
   directions.resize(size_x);
 
   for(int x=0; x<size_x; x++){
@@ -66,9 +66,9 @@ bool Matrix::prepare(){
 
 // -------------------------------------------------------------------------------------------
 
-bool Matrix::fill(){
+bool SmithWaterman::fill(){
 
-  unsigned long match, deletion, insertion, value;
+  long match, deletion, insertion, value;
   int direction;
 
   prev_row.resize(size_x, 0);
@@ -95,16 +95,16 @@ bool Matrix::fill(){
       }
 
       // DEBUG ##############################################################
-      if(PRINT_LEVEL >= 6){
-        cout << x << " " << y << "   " 
-             << sequence_1[x-1] << " " << sequence_2[y-1] << "   "
-             << setw(2) << match << " " 
-             << setw(2) << deletion << " " 
-             << setw(2) << insertion << "    " 
-             << value << endl;
+      // if(PRINT_LEVEL >= 6){
+      //   cout << x << " " << y << "   " 
+      //        << sequence_1[x-1] << " " << sequence_2[y-1] << "   "
+      //        << setw(2) << match << " " 
+      //        << setw(2) << deletion << " " 
+      //        << setw(2) << insertion << "    " 
+      //        << value << endl;
 
-        if((y+1) == size_y){ cout << "---------------------------" << endl; }
-      }
+      //   if((y+1) == size_y){ cout << "---------------------------" << endl; }
+      // }
       // END DEBUG ##########################################################
 
     }
@@ -129,9 +129,9 @@ bool Matrix::fill(){
 // |    11     |←    D     |
 // |___________|___________|
 //
-unsigned long Matrix::get(unsigned long match, unsigned long deletion, unsigned long insertion, int &direction){
+long SmithWaterman::get(long match, long deletion, long insertion, int &direction){
 
-  unsigned long _max = max((unsigned long)0, max(match, max(deletion, insertion)));
+  long _max = max((long)0, max(match, max(deletion, insertion)));
 
   direction = 0;
 
@@ -145,28 +145,28 @@ unsigned long Matrix::get(unsigned long match, unsigned long deletion, unsigned 
 // -------------------------------------------------------------------------------------------
 // Matrix have +1 fields than sequence
 //
-unsigned long Matrix::get_match(int x, int y){
+long SmithWaterman::get_match(int x, int y){
 
   return prev_row[x-1] + (sequence_1[x-1] == sequence_2[y-1] ? MATCH : MISMATCH);
 }
 
 // -------------------------------------------------------------------------------------------
 
-unsigned long Matrix::get_deletion(int x){
+long SmithWaterman::get_deletion(int x){
 
   return current_row[x-1] + GAP_PENALTY;
 }
 
 // -------------------------------------------------------------------------------------------
 
-unsigned long Matrix::get_insertion(int x){
+long SmithWaterman::get_insertion(int x){
 
   return prev_row[x] + GAP_PENALTY;
 }
 
 // -------------------------------------------------------------------------------------------
 
-bool Matrix::find_path(){
+bool SmithWaterman::find_path(){
 
   int x = path_indexes[0].first;
   int y = path_indexes[0].second;
@@ -211,7 +211,7 @@ bool Matrix::find_path(){
 
 // -------------------------------------------------------------------------------------------
 
-void Matrix::print(){
+void SmithWaterman::print(){
 
   switch(PRINT_LEVEL){
     case 6:
@@ -226,14 +226,14 @@ void Matrix::print(){
 
 // -------------------------------------------------------------------------------------------
 
-void Matrix::print_result(){
+void SmithWaterman::print_result(){
 
   cout << "\nBest score: " << max_value << endl;
 }
 
 // -------------------------------------------------------------------------------------------
 
-void Matrix::print_result_sequence(){
+void SmithWaterman::print_result_sequence(){
   String txt("Result:");
 
   int front_x = path_indexes.front().first;
@@ -289,7 +289,7 @@ void Matrix::print_result_sequence(){
 
 // -------------------------------------------------------------------------------------------
 
-void Matrix::print_path(){
+void SmithWaterman::print_path(){
   String txt("Path:");
 
   cout << endl << endl;
@@ -304,7 +304,7 @@ void Matrix::print_path(){
 
 // -------------------------------------------------------------------------------------------
 
-void Matrix::print_matrices(){
+void SmithWaterman::print_matrices(){
   String txt;
 
   // // Filed matrix

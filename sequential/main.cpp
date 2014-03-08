@@ -4,8 +4,10 @@
 #include <vector>
 #include <bitset>
 
+#include <stdio.h>
+
 #include "string.h"
-#include "matrix.h"
+#include "smith_waterman.h"
 #include "bit_array.h"
 
 using namespace std;
@@ -50,13 +52,13 @@ int main(int argc, char * argv[]){
   parse_args(argc, argv);
   show_settings();
 
-  Matrix matrix;
-  matrix.load(argv[1], argv[2]);
-  matrix.prepare();
-  matrix.fill();
-  matrix.find_path();
+  SmithWaterman sw;
+  sw.load(argv[1], argv[2]);
+  sw.prepare();
+  sw.fill();
+  sw.find_path();
 
-  matrix.print();
+  sw.print();
 
   return 0;
 }

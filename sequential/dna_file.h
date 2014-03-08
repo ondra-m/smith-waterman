@@ -1,14 +1,14 @@
 #ifndef _MATRIX_FILE_H
 #define _MATRIX_FILE_H
 
-class MatrixFile{
+class DNAFile{
 
   char * file_name;
   std::ifstream file;
 
   public:
-            MatrixFile();
-           ~MatrixFile();
+            DNAFile();
+           ~DNAFile();
 
     void     set(char * file_name);
 

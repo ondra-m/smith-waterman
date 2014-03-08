@@ -1,54 +1,54 @@
 #include <fstream>
 #include <string>
 
-#include "matrix_file.h"
+#include "dna_file.h"
 
 using namespace std;
 
 // -------------------------------------------------------------------------------------------
 
-MatrixFile::MatrixFile(){}
+DNAFile::DNAFile(){}
 
 // -------------------------------------------------------------------------------------------
 
-MatrixFile::~MatrixFile(){ 
+DNAFile::~DNAFile(){ 
   file.close();
 }
 
 // -------------------------------------------------------------------------------------------
 
-void MatrixFile::set(char * file_name){
+void DNAFile::set(char * file_name){
   this -> file_name = file_name;
 }
 
 // -------------------------------------------------------------------------------------------
 
-bool MatrixFile::open(){
+bool DNAFile::open(){
   file.open(file_name, std::ifstream::in);
   return is_open();  
 }
 
 // -------------------------------------------------------------------------------------------
 
-bool MatrixFile::is_open(){
+bool DNAFile::is_open(){
   return file.is_open();
 }
 
 // -------------------------------------------------------------------------------------------
 
-bool MatrixFile::is_eof(){
+bool DNAFile::is_eof(){
   return file.eof();
 }
 
 // -------------------------------------------------------------------------------------------
 
-void MatrixFile::close(){
+void DNAFile::close(){
   file.close();
 }
 
 // -------------------------------------------------------------------------------------------
 
-string MatrixFile::get_line(){
+string DNAFile::get_line(){
   string tmp;
 
   do{
