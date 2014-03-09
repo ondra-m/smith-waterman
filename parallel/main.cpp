@@ -17,6 +17,8 @@ using namespace std;
 
 // -------------------------------------------------------------------------------------------
 
+int THREAD_COUNT = 10; // 0=auto
+
 // DEFAULT
 int PRINT_LEVEL =  4;
 int MATCH       =  5;
@@ -57,7 +59,6 @@ int main(int argc, char * argv[]){
 
   SmithWaterman sw;
   sw.load(argv[1], argv[2]);
-  sw.prepare();
   sw.fill();
   sw.find_path();
 

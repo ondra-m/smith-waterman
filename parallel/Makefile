@@ -1,5 +1,5 @@
 CC     = g++
-CFLAGS = -O3
+CFLAGS = -O3 -fopenmp
 
 all: clean main clean2 new_line
 

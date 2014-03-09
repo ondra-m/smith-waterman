@@ -4,6 +4,9 @@
 #include <vector>
 #include <algorithm>
 #include <string>
+#include <cmath>
+
+#include <omp.h>
 
 #include "string.h"
 #include "smith_waterman.h"
@@ -56,60 +59,125 @@ bool SmithWaterman::load(char * file1, char * file2){
 
 // -------------------------------------------------------------------------------------------
 
-bool SmithWaterman::prepare(){
-  directions.resize(size_x);
+bool SmithWaterman::prepare_shared(std::vector<long> &prev_diagonal, 
+                                   std::vector<long> &prev_prev_diagonal, 
+                                   std::vector<long> &current_diagonal, 
+                                   std::vector<BitArray> &_directions){
+
+  _directions.resize(size_x);
 
   for(int x=0; x<size_x; x++){
-    directions[x].make(2, size_y, 0);
+    _directions[x].make(2, size_y, 0);
   }
+
+  prev_diagonal.resize(size_y, 0);
+  prev_prev_diagonal.resize(size_y, 0);
+  current_diagonal.resize(size_y, 0);
 }
 
 // -------------------------------------------------------------------------------------------
 
 bool SmithWaterman::fill(){
 
-  long match, deletion, insertion, value;
-  int direction;
+  long match, deletion, insertion, value, _max_value;
+  int thread_id, size, iteration, x, y, start_y, end_y, direction, end_x, thread_count, _max_value_x, _max_value_y;
 
-  prev_row.resize(size_x, 0);
-  current_row.resize(size_x, 0);
+  std::vector<long> prev_diagonal;
+  std::vector<long> prev_prev_diagonal;
+  std::vector<long> current_diagonal;
+  std::vector<BitArray> _directions;
 
-  for(int y=1; y<size_y; y++){
-    for(int x=1; x<size_x; x++){
+  prepare_shared(prev_diagonal, prev_prev_diagonal, current_diagonal, _directions);
 
-      match     = get_match(x, y);
-      deletion  = get_deletion(x);
-      insertion = get_insertion(x);
 
-      value = get(match, deletion, insertion, direction);
+  // Parallel ==================================================
+  #pragma omp parallel num_threads(THREAD_COUNT) private(thread_id, size, iteration, x, y, start_y, end_y, \
+                                                         direction, match, deletion, insertion, value, _max_value, \
+                                                         end_x, _max_value_x, _max_value_y) \
+                                                 shared(prev_prev_diagonal, prev_diagonal, current_diagonal, _directions)
+  {
+    thread_count = omp_get_num_threads();
+    thread_id    = omp_get_thread_num();
 
-      current_row[x] = value;
-      directions[x].set(y, direction);
 
-      // member coordinates of larges number
-      if(value >= max_value){
-        max_value = value;
+    // variables declaration
+    // ---------------------
+    _max_value_x = _max_value_y = _max_value = 0;
 
-        path_indexes[0].first  = x;
-        path_indexes[0].second = y;
+    size    = ceil(sequence_2.size()/THREAD_COUNT); // ceil = round up
+    start_y = (thread_id * size) + 1;
+    end_y   = start_y + size;
+
+    // last thread has least fields
+    if((thread_id+1) == THREAD_COUNT){
+      size = sequence_2.size() - ((THREAD_COUNT-1) * size);
+    }
+
+
+
+    // iterration with upper diagonal matrix
+    // -------------------------------------
+    for(iteration=1; iteration<(size_x+size_y); iteration++){
+
+      x = iteration-(thread_id*size);
+      y = start_y;
+
+      // go antidiagonally
+      while(x > 0 && y < end_y){
+
+        if(x >= size_x){
+          x--; y++;
+
+          continue;
+        }
+
+
+        match     = get_match(x, y, prev_prev_diagonal);
+        deletion  = get_deletion(y, prev_diagonal);
+        insertion = get_insertion(y, prev_diagonal);
+
+        value = get(match, deletion, insertion, direction);
+
+        current_diagonal[y] = value;
+        _directions[x].set(y, direction);
+
+        // member coordinates of larges number
+        if(value >= _max_value){
+          _max_value   = value;
+          _max_value_x = x;
+          _max_value_y = y;
+        }
+
+        x--;
+        y++;
       }
 
-      // DEBUG ##############################################################
-      // if(PRINT_LEVEL >= 6){
-      //   cout << x << " " << y << "   " 
-      //        << sequence_1[x-1] << " " << sequence_2[y-1] << "   "
-      //        << setw(2) << match << " " 
-      //        << setw(2) << deletion << " " 
-      //        << setw(2) << insertion << "    " 
-      //        << value << endl;
 
-      //   if((y+1) == size_y){ cout << "---------------------------" << endl; }
-      // }
-      // END DEBUG ##########################################################
-
+      #pragma omp barrier
+      #pragma omp master
+      {
+        prev_diagonal.swap(prev_prev_diagonal);
+        prev_diagonal.swap(current_diagonal);
+      }
+      #pragma omp barrier
     }
-    current_row.swap(prev_row);
+
+
+
+    #pragma omp critical
+    {
+      if(_max_value >= max_value){
+        max_value = _max_value;
+
+        path_indexes[0].first  = _max_value_x;
+        path_indexes[0].second = _max_value_y;
+      }
+    }
+
   }
+  // End parallel ==============================================
+
+  directions = _directions;
 }
 
 // -------------------------------------------------------------------------------------------
@@ -143,25 +211,26 @@ long SmithWaterman::get(long match, long deletion, long insertion, int &directio
 }
 
 // -------------------------------------------------------------------------------------------
-// Matrix have +1 fields than sequence
+// Matrix have +1 fields than sequence (filled with 0)
+//   -> sequence -1
 //
-long SmithWaterman::get_match(int x, int y){
+long SmithWaterman::get_match(int x, int y, std::vector<long> &prev_prev_diagonal){
 
-  return prev_row[x-1] + (sequence_1[x-1] == sequence_2[y-1] ? MATCH : MISMATCH);
+  return prev_prev_diagonal[y-1] + (sequence_1[x-1] == sequence_2[y-1] ? MATCH : MISMATCH);
 }
 
 // -------------------------------------------------------------------------------------------
 
-long SmithWaterman::get_deletion(int x){
+long SmithWaterman::get_deletion(int y, std::vector<long> &prev_diagonal){
 
-  return current_row[x-1] + GAP_PENALTY;
+  return prev_diagonal[y] + GAP_PENALTY;
 }
 
 // -------------------------------------------------------------------------------------------
 
-long SmithWaterman::get_insertion(int x){
+long SmithWaterman::get_insertion(int y, std::vector<long> &prev_diagonal){
 
-  return prev_row[x] + GAP_PENALTY;
+  return prev_diagonal[y-1] + GAP_PENALTY;
 }
 
 // -------------------------------------------------------------------------------------------
@@ -306,44 +375,6 @@ void SmithWaterman::print_path(){
 
 void SmithWaterman::print_matrices(){
   String txt;
-
-  // // Filed matrix
-  // // --------------------------------------------
-  // txt = "Filled matrix:";
-
-  // cout << endl;
-  // cout << txt.bold() << endl;
-
-  // // vertical header
-  // cout << "          ";
-  // for(int i=0; i<sequence_1.size(); i++){
-  //   cout << "  " << setw(2) << (i+1);
-  // }
-  // cout << endl;
-
-  // cout << "          ";
-  // for(int i=0; i<sequence_1.size(); i++){
-  //   txt = sequence_1[i];
-  //   cout << "   " << txt.bold();
-  // }
-  // cout << endl << endl;
-
-
-  // for(int y=1; y<size_y; y++){
-  //   cout << "     ";
-
-  //   for(int x=1; x<size_x; x++){
-  //     // horizontal header
-  //     if(x == 1){
-  //       txt = sequence_2[y-1];
-  //       cout << setw(2) << (y) << " " << txt.bold() << " ";
-  //     }
-
-  //     cout << " " << setw(3) << matrix[x][y];
-  //   }
-
-  //   cout << endl;
-  // }
 
 
 

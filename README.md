@@ -1,3 +1,6 @@
+http://software.intel.com/en-us/articles/32-openmp-traps-for-c-developers/
+
+
 Sequential:
 
   test6:
