@@ -35,17 +35,17 @@ class SmithWaterman{
         ~SmithWaterman();
 
     bool load(char * file1, char * file2);
-    bool prepare_shared(std::vector<long> &prev_diagonal,
-                        std::vector<long> &prev_prev_diagonal, 
-                        std::vector<long> &current_diagonal, 
+    bool prepare_shared(std::vector<long> * prev_diagonal,
+                        std::vector<long> * prev_prev_diagonal, 
+                        std::vector<long> * current_diagonal, 
                         std::vector<BitArray> &_directions);
     bool fill();
     bool find_path();
 
     long get(long match, long deletion, long insertion, int &direction);
-    long get_match(int x, int y, std::vector<long> &prev_prev_diagonal);
-    long get_deletion(int y, std::vector<long> &prev_diagonal);
-    long get_insertion(int y, std::vector<long> &prev_diagonal);
+    long get_match(int x, int y, std::vector<long> * prev_prev_diagonal);
+    long get_deletion(int y, std::vector<long> * prev_diagonal);
+    long get_insertion(int y, std::vector<long> * prev_diagonal);
 
     void print();
     void print_result();

@@ -17,7 +17,7 @@ using namespace std;
 
 // -------------------------------------------------------------------------------------------
 
-int THREAD_COUNT = 10; // 0=auto
+int THREAD_COUNT = 2; // 0=auto
 
 // DEFAULT
 int PRINT_LEVEL =  4;
@@ -29,23 +29,25 @@ int GAP_PENALTY = -4;
 
 void parse_args(int argc, char * argv[]){
   switch(argc){
-    case 7: PRINT_LEVEL = atoi(argv[6]);
-    case 6: GAP_PENALTY = atoi(argv[5]);
-    case 5: MISMATCH    = atoi(argv[4]);
-    case 4: MATCH       = atoi(argv[3]);
+    case 8: THREAD_COUNT = atoi(argv[7]);
+    case 7: PRINT_LEVEL  = atoi(argv[6]);
+    case 6: GAP_PENALTY  = atoi(argv[5]);
+    case 5: MISMATCH     = atoi(argv[4]);
+    case 4: MATCH        = atoi(argv[3]);
   }
 }
 
 // -------------------------------------------------------------------------------------------
 
 void show_settings(){
-  if(PRINT_LEVEL >= 5){
+  // if(PRINT_LEVEL >= 5){
+    cout << "THREAD_COUNT: " << THREAD_COUNT << endl;
     cout << "PRINT_LEVEL: " << PRINT_LEVEL << endl;
     cout << "MATCH: " << MATCH << endl;
     cout << "MISMATCH: " << MISMATCH << endl;
     cout << "GAP_PENALTY: " << GAP_PENALTY << endl;
     cout << endl;
-  }
+  // }
 }
 
 // -------------------------------------------------------------------------------------------
