@@ -4,12 +4,6 @@
 class String;
 class BitArray;
 
-extern int THREAD_COUNT;
-extern int PRINT_LEVEL;
-extern int GAP_PENALTY;
-extern int MATCH;
-extern int MISMATCH;
-
 class SmithWaterman{
 
   String sequence_1;

@@ -4,11 +4,6 @@
 class BitArray{
 
   unsigned short int bits;           // # bits of the one field
-  // unsigned short int fields_in_char; // # field in one char
-  // unsigned int size;                 // size of array
-  // unsigned int char_size;            // # of allocated chars
-
-  // char * data;
 
   std::vector<bool> data;
 

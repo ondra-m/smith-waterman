@@ -9,6 +9,7 @@
 #include <omp.h>
 
 #include "string.h"
+#include "setting.h"
 #include "smith_waterman.h"
 #include "dna_file.h"
 #include "bit_array.h"
@@ -47,14 +48,14 @@ bool SmithWaterman::load(char * file1, char * file2){
   sequence_2 = file.get_line();
   file.close();
 
-  if(PRINT_LEVEL >= 4){
+  if(Setting::print_level >= 4){
     cout << "Sequence 1: " << sequence_1.bold() << endl;
     cout << "Sequence 2: " << sequence_2.bold() << endl;
     cout << endl;
   }
 
-  size_x = sequence_1.size() + 1;
-  size_y = sequence_2.size() + 1;
+  size_x = sequence_1.size() + 1; // +1=first row is filled with 0
+  size_y = sequence_2.size() + 1; // +1=first column is filled with 0
 }
 
 // -------------------------------------------------------------------------------------------
@@ -109,7 +110,7 @@ bool SmithWaterman::fill(){
 
 
   // Parallel ==================================================
-  #pragma omp parallel num_threads(THREAD_COUNT) private(thread_id, size, iteration, x, y, start_y, end_y, \
+  #pragma omp parallel num_threads(Setting::thread_count) private(thread_id, size, iteration, x, y, start_y, end_y, \
                                                          direction, match, deletion, insertion, value, _max_value, \
                                                          end_x, _max_value_x, _max_value_y, t1, t2, t3, t4, _t1, _t2) \
                                                  shared(prev_prev_diagonal, prev_diagonal, current_diagonal, tmp_diagonal, _directions)
@@ -152,14 +153,15 @@ bool SmithWaterman::fill(){
           continue;
         }
 
+
 // _t1 = omp_get_wtime();
 // _t2 = omp_get_wtime();
 // t1 += (_t2 - _t1);
 
 // _t1 = omp_get_wtime();
-        match     = (*prev_prev_diagonal)[y-1] + (sequence_1[x-1] == sequence_2[y-1] ? MATCH : MISMATCH);
-        deletion  = (*prev_diagonal)[y] + GAP_PENALTY;
-        insertion = (*prev_diagonal)[y-1] + GAP_PENALTY;
+        match     = (*prev_prev_diagonal)[y-1] + (sequence_1[x-1] == sequence_2[y-1] ? Setting::match : Setting::mismatch);
+        deletion  = (*prev_diagonal)[y] + Setting::gap_penalty;
+        insertion = (*prev_diagonal)[y-1] + Setting::gap_penalty;
 
 
         value = max((long)0, max(match, max(deletion, insertion)));
@@ -277,21 +279,21 @@ long SmithWaterman::get(long match, long deletion, long insertion, int &directio
 //
 long SmithWaterman::get_match(int x, int y, std::vector<long> * prev_prev_diagonal){
 
-  return (*prev_prev_diagonal)[y-1] + (sequence_1[x-1] == sequence_2[y-1] ? MATCH : MISMATCH);
+  return (*prev_prev_diagonal)[y-1] + (sequence_1[x-1] == sequence_2[y-1] ? Setting::match : Setting::mismatch);
 }
 
 // -------------------------------------------------------------------------------------------
 
 long SmithWaterman::get_deletion(int y, std::vector<long> * prev_diagonal){
 
-  return (*prev_diagonal)[y] + GAP_PENALTY;
+  return (*prev_diagonal)[y] + Setting::gap_penalty;
 }
 
 // -------------------------------------------------------------------------------------------
 
 long SmithWaterman::get_insertion(int y, std::vector<long> * prev_diagonal){
 
-  return (*prev_diagonal)[y-1] + GAP_PENALTY;
+  return (*prev_diagonal)[y-1] + Setting::gap_penalty;
 }
 
 // -------------------------------------------------------------------------------------------
@@ -343,7 +345,7 @@ bool SmithWaterman::find_path(){
 
 void SmithWaterman::print(){
 
-  switch(PRINT_LEVEL){
+  switch(Setting::print_level){
     case 6:
     case 5:
     case 4:

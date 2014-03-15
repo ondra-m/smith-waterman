@@ -7,8 +7,10 @@
 #include <vector>
 #include <bitset>
 
-#include <stdio.h>
+#include <stdlib.h>
+#include <omp.h>
 
+#include "setting.h"
 #include "string.h"
 #include "smith_waterman.h"
 #include "bit_array.h"
@@ -17,47 +19,21 @@ using namespace std;
 
 // -------------------------------------------------------------------------------------------
 
-int THREAD_COUNT = 2; // 0=auto
-
 // DEFAULT
-int PRINT_LEVEL =  4;
-int MATCH       =  5;
-int MISMATCH    = -3;
-int GAP_PENALTY = -4;
-
-// -------------------------------------------------------------------------------------------
-
-void parse_args(int argc, char * argv[]){
-  switch(argc){
-    case 8: THREAD_COUNT = atoi(argv[7]);
-    case 7: PRINT_LEVEL  = atoi(argv[6]);
-    case 6: GAP_PENALTY  = atoi(argv[5]);
-    case 5: MISMATCH     = atoi(argv[4]);
-    case 4: MATCH        = atoi(argv[3]);
-  }
-}
-
-// -------------------------------------------------------------------------------------------
-
-void show_settings(){
-  // if(PRINT_LEVEL >= 5){
-    cout << "THREAD_COUNT: " << THREAD_COUNT << endl;
-    cout << "PRINT_LEVEL: " << PRINT_LEVEL << endl;
-    cout << "MATCH: " << MATCH << endl;
-    cout << "MISMATCH: " << MISMATCH << endl;
-    cout << "GAP_PENALTY: " << GAP_PENALTY << endl;
-    cout << endl;
-  // }
-}
+const int THREAD_COUNT =  2;
+const int MATCH        =  5;
+const int MISMATCH     = -3;
+const int GAP_PENALTY  = -4;
+const int PRINT_LEVEL  =  4; 
 
 // -------------------------------------------------------------------------------------------
 
 int main(int argc, char * argv[]){
-
   // BitArray::test();
 
-  parse_args(argc, argv);
-  show_settings();
+  double t1 = omp_get_wtime();;
+
+  Setting::parse(argc, argv);
 
   SmithWaterman sw;
   sw.load(argv[1], argv[2]);
@@ -65,6 +41,10 @@ int main(int argc, char * argv[]){
   sw.find_path();
 
   sw.print();
+
+  double t2 = omp_get_wtime();
+  
+  cout << "Time: " << (t2 - t1) << "s" << endl;
 
   return 0;
 }

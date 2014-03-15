@@ -1,13 +1,21 @@
 CC     = g++
-CFLAGS = -O3 -fopenmp
+CFLAGS = -fopenmp
+
+
 
 all: clean main clean2 new_line
 
-main: main.o smith_waterman.o dna_file.o string.o bit_array.o
-	$(CC) $(CFLAGS) main.o smith_waterman.o dna_file.o string.o bit_array.o -o a.out
+main: main.o getopt_pp.o setting.o smith_waterman.o dna_file.o string.o bit_array.o
+	$(CC) $(CFLAGS) main.o getopt_pp.o setting.o smith_waterman.o dna_file.o string.o bit_array.o -o a.out
 
 main.o: main.cpp
 	$(CC) $(CFLAGS) -c main.cpp -o main.o
+
+getopt_pp.o: getopt_pp.cpp
+	$(CC) $(CFLAGS) -c getopt_pp.cpp -o getopt_pp.o
+
+setting.o: setting.cpp
+	$(CC) $(CFLAGS) -c setting.cpp -o setting.o
 
 smith_waterman.o: smith_waterman.cpp
 	$(CC) $(CFLAGS) -c smith_waterman.cpp -o smith_waterman.o
