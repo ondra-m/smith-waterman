@@ -24,7 +24,7 @@ Setting::~Setting(){}
 void Setting::parse(int argc, char * argv[]){
   GetOpt::GetOpt_pp ops(argc, argv);
 
-  ops >> GetOpt::Option('t', "thread_count", thread_count);
+  ops >> GetOpt::Option('t', "thread", thread_count);
   ops >> GetOpt::Option('m', "match", match);
   ops >> GetOpt::Option('s', "mismatch", mismatch);
   ops >> GetOpt::Option('g', "gap_penalty", gap_penalty);

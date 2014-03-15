@@ -12,7 +12,7 @@ class SmithWaterman{
   int size_x;
   int size_y;
 
-  long max_value;
+  long best_score;
 
   String result_line1;
   String result_line2;
@@ -29,17 +29,14 @@ class SmithWaterman{
         ~SmithWaterman();
 
     bool load(char * file1, char * file2);
-    bool prepare_shared(std::vector<long> * prev_diagonal,
-                        std::vector<long> * prev_prev_diagonal, 
-                        std::vector<long> * current_diagonal, 
-                        std::vector<BitArray> &_directions);
+    bool prepare_variables();
     bool fill();
     bool find_path();
 
     long get(long match, long deletion, long insertion, int &direction);
-    long get_match(int x, int y, std::vector<long> * prev_prev_diagonal);
-    long get_deletion(int y, std::vector<long> * prev_diagonal);
-    long get_insertion(int y, std::vector<long> * prev_diagonal);
+    long get_match(int x, int y, int local_x, int local_y, std::vector<long> &prev_column, std::vector<long> &prev_snake_diagonal_y);
+    long get_deletion(int local_y, std::vector<long> &prev_column);
+    long get_insertion(int local_x, int local_y, std::vector<long> &current_column, std::vector<long> &prev_snake_diagonal_y);
 
     void print();
     void print_result();

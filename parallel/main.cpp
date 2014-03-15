@@ -24,7 +24,7 @@ const int THREAD_COUNT =  2;
 const int MATCH        =  5;
 const int MISMATCH     = -3;
 const int GAP_PENALTY  = -4;
-const int PRINT_LEVEL  =  4; 
+const int PRINT_LEVEL  =  0; 
 
 // -------------------------------------------------------------------------------------------
 

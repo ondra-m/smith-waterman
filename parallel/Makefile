@@ -1,5 +1,5 @@
 CC     = g++
-CFLAGS = -fopenmp
+CFLAGS = -O3 -fopenmp
 
 
 
@@ -50,7 +50,7 @@ test_run1:
 	./a.out ../sequence_1.txt ../sequence_2.txt
 
 test_run2:
-	./a.out ../sequence_2.txt ../sequence_3.txt 2 -1 -1
+	./a.out ../sequence_2.txt ../sequence_3.txt
 
 test_run3:
 	./a.out ../sequence_3.txt ../sequence_4.txt

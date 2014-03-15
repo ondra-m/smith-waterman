@@ -19,7 +19,7 @@ using namespace std;
 // -------------------------------------------------------------------------------------------
 
 SmithWaterman::SmithWaterman(){
-  max_value = 0;
+  best_score = 0;
 
   result_line1 = "";
   result_line2 = "";
@@ -48,6 +48,10 @@ bool SmithWaterman::load(char * file1, char * file2){
   sequence_2 = file.get_line();
   file.close();
 
+  if(sequence_1.size() < sequence_2.size()){
+    sequence_1.swap(sequence_2);
+  }
+
   if(Setting::print_level >= 4){
     cout << "Sequence 1: " << sequence_1.bold() << endl;
     cout << "Sequence 2: " << sequence_2.bold() << endl;
@@ -60,174 +64,178 @@ bool SmithWaterman::load(char * file1, char * file2){
 
 // -------------------------------------------------------------------------------------------
 
-bool SmithWaterman::prepare_shared(std::vector<long> * prev_diagonal, 
-                                   std::vector<long> * prev_prev_diagonal, 
-                                   std::vector<long> * current_diagonal, 
-                                   std::vector<BitArray> &_directions){
-
-  _directions.resize(size_x);
-
-  for(int x=0; x<size_x; x++){
-    _directions[x].make(2, size_y, 0);
-  }
-
-
-  // prev_diagonal = new std::vector<long>(size_y);
-  // prev_prev_diagonal = new std::vector<long>(size_y);
-  // current_diagonal = new std::vector<long>(size_y);
-
-  // for(int i=0; i<size_y; i++){
-  //   (*prev_prev_diagonal)[i] = (*prev_diagonal)[i] = (*current_diagonal)[i] = 0;
-  // }
+bool SmithWaterman::prepare_variables(){
 
 }
 
 // -------------------------------------------------------------------------------------------
-
+//
+// Snake diagonal        Snake diagonal x       Snake diagonal y
+//
+//             |                     |                     
+//             |                     |                     
+//        _____|                     |                _____
+//       |                     |                     
+//       |                     |                     
+//  _____|                     |                _____
+// |                     |                     
+// |                     |                     
+// |                     |                     
+//
 bool SmithWaterman::fill(){
 
-  double t1, t2, t3, t4, _t1, _t2;
+  prepare_variables();
 
-  long match, deletion, insertion, value, _max_value;
-  int thread_id, size, iteration, x, y, start_y, end_y, direction, end_x, thread_count, _max_value_x, _max_value_y;
+  // ===== private for all threads =============================
+    int iteration, max_value_x, max_value_y, start_y, end_y, i, direction;
+    int x, y, local_x, local_y, local_size_y;
+    int thread_count, thread_id, last;
+    long max_value, value, match, deletion, insertion;
 
-  std::vector<long> * prev_diagonal;
-  std::vector<long> * prev_prev_diagonal;
-  std::vector<long> * current_diagonal;
-  std::vector<long> * tmp_diagonal;
-  std::vector<BitArray> _directions;
+    // for local calculation
+    std::vector<long> current_column;
+    std::vector<long> prev_column;
 
-  prev_diagonal = new std::vector<long>(size_y);
-  prev_prev_diagonal = new std::vector<long>(size_y);
-  current_diagonal = new std::vector<long>(size_y);
 
-  for(int i=0; i<size_y; i++){
-    (*prev_prev_diagonal)[i] = (*prev_diagonal)[i] = (*current_diagonal)[i] = 0;
-  }
+  // ===== shared for all threads ==============================
 
-  prepare_shared(prev_diagonal, prev_prev_diagonal, current_diagonal, _directions);
+    // velikost jsou pro y
+    // pro všechny jádra kromě poledního
+    int local_size_x;
 
+    // first index = thread id
+    // second index = 0 -> prev square
+    //                1 -> current square
+    // third index = values
+    std::vector< std::vector< std::vector<long> > > snake_diagonal_y;
+
+    std::vector<BitArray> _directions;
+
+    _directions.resize(size_x);
+
+    for(int x=0; x<size_x; x++){
+      _directions[x].make(2, size_y, 0);
+    }
 
 
   // Parallel ==================================================
-  #pragma omp parallel num_threads(Setting::thread_count) private(thread_id, size, iteration, x, y, start_y, end_y, \
-                                                         direction, match, deletion, insertion, value, _max_value, \
-                                                         end_x, _max_value_x, _max_value_y, t1, t2, t3, t4, _t1, _t2) \
-                                                 shared(prev_prev_diagonal, prev_diagonal, current_diagonal, tmp_diagonal, _directions)
+  #pragma omp parallel num_threads(Setting::thread_count) \
+                       private(iteration, max_value, max_value_x, max_value_y, start_y, end_y, x, y, local_x, local_y, i, \
+                               match, deletion, insertion, value, direction, thread_count, thread_id, last, local_size_y, \
+                               current_column, prev_column) \
+                       shared(local_size_x, snake_diagonal_y, _directions)
   {
-// t1 = t2 = t3 = t4 = 0;
 
     thread_count = omp_get_num_threads();
     thread_id    = omp_get_thread_num();
 
 
+
     // variables declaration
     // ---------------------
-    _max_value_x = _max_value_y = _max_value = 0;
+    #pragma omp master
+    {
+      local_size_x = ceil((float)sequence_2.size()/(float)thread_count);
 
-    size    = ceil(sequence_2.size()/THREAD_COUNT); // ceil = round up
-    start_y = (thread_id * size) + 1;
-    end_y   = start_y + size;
+      snake_diagonal_y.resize(thread_count);
+      
+      for(i=0; i<thread_count; i++){
 
-    // last thread has least fields
-    if((thread_id+1) == THREAD_COUNT){
-      size = sequence_2.size() - ((THREAD_COUNT-1) * size);
+        snake_diagonal_y[i].resize(2);
+
+        snake_diagonal_y[i][0].resize(local_size_x+1, 0);
+        snake_diagonal_y[i][1].resize(local_size_x+1, 0);
+      }
+    }
+    #pragma omp barrier
+
+    last = (thread_id+1) == thread_count ? true : false;
+
+    if(last){
+      // last thread
+      local_size_y = sequence_2.size() - (local_size_x*(thread_count-1));
+
+      if(local_size_y < 0){
+        local_size_y = 0;
+      }
+    }
+    else{
+      // other threads
+      local_size_y = local_size_x;
     }
 
 
+    max_value = 0;
+    start_y = (thread_id * local_size_x) + 1;
+    end_y   = start_y + local_size_y;
 
-    // iterration with upper diagonal matrix
+    current_column.resize(local_size_y, 0);
+    prev_column.resize(local_size_y, 0);
+
+
+
+    // iterration
     // -------------------------------------
     for(iteration=1; iteration<(size_x+size_y); iteration++){
 
-      x = iteration-(thread_id*size);
-      y = start_y;
+      // na mojí čísti přesunu poslední prvek na první
+      // diagonála se posunuje ale každý prvek je zkoumaný match a insertion
+      if(!last){
+        snake_diagonal_y[thread_id+1][1][0] = snake_diagonal_y[thread_id+1][0].back();
+      }
 
 
-      // go antidiagonally
-      while(x > 0 && y < end_y){
+      x = (iteration*local_size_x)-(thread_id*local_size_x)-local_size_x+1;
+      for(local_x=0; local_x<local_size_x && x<size_x && x>0; local_x++){
 
-        if(x >= size_x){
-          x--; y++;
+        y = start_y;
+        for(local_y=0; local_y<local_size_y && y<size_y; local_y++){
 
-          continue;
+          // because first line is filled with zero, index of snake_diagonal == thread_id+1
+          // so prev snake_diagonal == thread_id
+          match     = get_match(x, y, local_x, local_y, prev_column, snake_diagonal_y[thread_id][0]);
+          deletion  = get_deletion(local_y, prev_column);
+          insertion = get_insertion(local_x, local_y, current_column, snake_diagonal_y[thread_id][0]);
+
+          value = get(match, deletion, insertion, direction);
+
+          current_column[local_y] = value;
+          if((local_y+1) == local_size_y && !last){
+            snake_diagonal_y[thread_id+1][1][local_x+1] = value;
+          }
+
+          _directions[x].set(y, direction);
+
+          // member coordinates of larges number
+          if(value >= max_value){
+            max_value   = value;
+            max_value_x = x;
+            max_value_y = y;
+          }
+
+          y++;
         }
 
-
-// _t1 = omp_get_wtime();
-// _t2 = omp_get_wtime();
-// t1 += (_t2 - _t1);
-
-// _t1 = omp_get_wtime();
-        match     = (*prev_prev_diagonal)[y-1] + (sequence_1[x-1] == sequence_2[y-1] ? Setting::match : Setting::mismatch);
-        deletion  = (*prev_diagonal)[y] + Setting::gap_penalty;
-        insertion = (*prev_diagonal)[y-1] + Setting::gap_penalty;
-
-
-        value = max((long)0, max(match, max(deletion, insertion)));
-
-        direction = 0;
-
-        if     (value == match)     { direction = 1; }
-        else if(value == insertion) { direction = 2; }
-        else if(value == deletion)  { direction = 3; }
-
-        (*current_diagonal)[y] = value;
-// _t2 = omp_get_wtime();
-// t2 += (_t2 - _t1);
-
-
-// _t1 = omp_get_wtime();
-        _directions[x].set(y, direction);
-// _t2 = omp_get_wtime();
-// t3 += (_t2 - _t1);
-
-        // member coordinates of larges number
-        if(value >= _max_value){
-          _max_value   = value;
-          _max_value_x = x;
-          _max_value_y = y;
-        }
-
-
-        x--;
-        y++;
+        prev_column.swap(current_column);
+        x++;
       }
 
 
       #pragma omp barrier
-// _t1 = omp_get_wtime();
-      #pragma omp master
-      {
-        // prev_diagonal.swap(prev_prev_diagonal);
-        // prev_diagonal.swap(current_diagonal);
-
-        tmp_diagonal = prev_prev_diagonal;
-
-        prev_prev_diagonal = prev_diagonal;
-        prev_diagonal = current_diagonal;
-        current_diagonal = tmp_diagonal;
-      }
-// _t2 = omp_get_wtime();
-// t4 += (_t2 - _t1);
+        if(!last){
+          std::reverse(snake_diagonal_y[thread_id+1].begin(), snake_diagonal_y[thread_id+1].end());
+        }
       #pragma omp barrier
     }
-
 
 
     #pragma omp critical
     {
-  // cout << "[" << thread_id << "] t1: " << t1 << endl;
-  // cout << "[" << thread_id << "] t2: " << t2 << endl;
-  // cout << "[" << thread_id << "] t3: " << t3 << endl;
-  // cout << "[" << thread_id << "] t4: " << t4 << endl;
-  // cout << endl;
+      if(max_value >= best_score){
+        best_score = max_value;
 
-      if(_max_value >= max_value){
-        max_value = _max_value;
-
-        path_indexes[0].first  = _max_value_x;
-        path_indexes[0].second = _max_value_y;
+        path_indexes[0].first  = max_value_x;
+        path_indexes[0].second = max_value_y;
       }
     }
 
@@ -235,12 +243,7 @@ bool SmithWaterman::fill(){
   // End parallel ==============================================
 
 
-
-// t1 = omp_get_wtime();
   directions = _directions;
-// t2 = omp_get_wtime();
-
-  // cout << "1: " << (t2-t1) << endl;
 }
 
 // -------------------------------------------------------------------------------------------
@@ -277,23 +280,31 @@ long SmithWaterman::get(long match, long deletion, long insertion, int &directio
 // Matrix have +1 fields than sequence (filled with 0)
 //   -> sequence -1
 //
-long SmithWaterman::get_match(int x, int y, std::vector<long> * prev_prev_diagonal){
+long SmithWaterman::get_match(int x, int y, int local_x, int local_y, std::vector<long> &prev_column, std::vector<long> &prev_snake_diagonal_y){
 
-  return (*prev_prev_diagonal)[y-1] + (sequence_1[x-1] == sequence_2[y-1] ? Setting::match : Setting::mismatch);
+  if(local_y == 0){
+    return prev_snake_diagonal_y[local_x] + (sequence_1[x-1] == sequence_2[y-1] ? Setting::match : Setting::mismatch);
+  }
+
+  return prev_column[local_y-1] + (sequence_1[x-1] == sequence_2[y-1] ? Setting::match : Setting::mismatch);
 }
 
 // -------------------------------------------------------------------------------------------
 
-long SmithWaterman::get_deletion(int y, std::vector<long> * prev_diagonal){
+long SmithWaterman::get_deletion(int local_y, std::vector<long> &prev_column){
 
-  return (*prev_diagonal)[y] + Setting::gap_penalty;
+  return prev_column[local_y] + Setting::gap_penalty;
 }
 
 // -------------------------------------------------------------------------------------------
 
-long SmithWaterman::get_insertion(int y, std::vector<long> * prev_diagonal){
+long SmithWaterman::get_insertion(int local_x, int local_y, std::vector<long> &current_column, std::vector<long> &prev_snake_diagonal_y){
 
-  return (*prev_diagonal)[y-1] + Setting::gap_penalty;
+  if(local_y == 0){
+    return prev_snake_diagonal_y[local_x+1] + Setting::gap_penalty; 
+  }
+
+  return current_column[local_y-1] + Setting::gap_penalty;
 }
 
 // -------------------------------------------------------------------------------------------
@@ -337,12 +348,6 @@ bool SmithWaterman::find_path(){
   std::reverse(result_line2.begin(), result_line2.end());
 }
 
-// -------------------------------------------------------------------------------------------
-
-
-
-// -------------------------------------------------------------------------------------------
-
 void SmithWaterman::print(){
 
   switch(Setting::print_level){
@@ -360,7 +365,7 @@ void SmithWaterman::print(){
 
 void SmithWaterman::print_result(){
 
-  cout << "\nBest score: " << max_value << endl;
+  cout << "\nBest score: " << best_score << endl;
 }
 
 // -------------------------------------------------------------------------------------------
@@ -438,8 +443,6 @@ void SmithWaterman::print_path(){
 
 void SmithWaterman::print_matrices(){
   String txt;
-
-
 
   // Direction
   // --------------------------------------------
