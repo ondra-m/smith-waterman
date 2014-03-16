@@ -10,6 +10,7 @@ int Setting::match        = MATCH;
 int Setting::mismatch     = MISMATCH;
 int Setting::gap_penalty  = GAP_PENALTY;
 int Setting::print_level  = PRINT_LEVEL;
+int Setting::char_per_row = CHAR_PER_ROW;
 
 // -------------------------------------------------------------------------------------------
 
@@ -27,8 +28,9 @@ void Setting::parse(int argc, char * argv[]){
   ops >> GetOpt::Option('t', "thread", thread_count);
   ops >> GetOpt::Option('m', "match", match);
   ops >> GetOpt::Option('s', "mismatch", mismatch);
-  ops >> GetOpt::Option('g', "gap_penalty", gap_penalty);
-  ops >> GetOpt::Option('p', "print_level", print_level);
+  ops >> GetOpt::Option('g', "gap", gap_penalty);
+  ops >> GetOpt::Option('p', "print", print_level);
+  ops >> GetOpt::Option('c', "char", char_per_row);
 
   if(print_level >= 2){
     print();

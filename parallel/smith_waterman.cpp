@@ -1,5 +1,4 @@
 #include <iostream>
-#include <iomanip>
 #include <fstream>
 #include <vector>
 #include <algorithm>
@@ -20,9 +19,6 @@ using namespace std;
 
 SmithWaterman::SmithWaterman(){
   best_score = 0;
-
-  result_line1 = "";
-  result_line2 = "";
 
   path_indexes.resize(1);
   path_indexes[0].first  = 0;
@@ -311,8 +307,18 @@ long SmithWaterman::get_insertion(int local_x, int local_y, std::vector<long> &c
 
 bool SmithWaterman::find_path(){
 
+  // Constructing result path
+  // ------------------------
+
+  String result_line1("");
+  String result_line2("");
+
   int x = path_indexes[0].first;
   int y = path_indexes[0].second;
+
+  int biggest_number = max(x, y);
+  int digits = 0;
+  do { biggest_number /= 10; digits++; } while (biggest_number != 0);
 
   do{
 
@@ -346,7 +352,51 @@ bool SmithWaterman::find_path(){
   std::reverse(path_indexes.begin(), path_indexes.end());
   std::reverse(result_line1.begin(), result_line1.end());
   std::reverse(result_line2.begin(), result_line2.end());
+
+
+
+
+  // Constructing result seqence
+  // ---------------------------
+  
+  x = path_indexes[0].first;
+  y = path_indexes[0].second;
+
+
+  int local_i = 0;
+
+  for(int i=0; i<result_line1.size(); i++){
+  
+    if(local_i == 0){
+      std::vector<String> tmp;
+      tmp.resize(3);
+
+      tmp[0] = to_s(x, digits) + " ";
+      tmp[1] = string(digits+1, ' ');
+      tmp[2] = to_s(y, digits) + " ";
+
+      result_line.push_back(tmp);
+    }
+
+    result_line.back()[0] += result_line1[i];
+    result_line.back()[1] += (result_line1[i] == result_line2[i] ? '|' : ' ');
+    result_line.back()[2] += result_line2[i];
+
+    if(local_i == Setting::char_per_row || (i+1) == result_line1.size()){
+      local_i = -1;
+
+      result_line.back()[0] += " " + to_s(x, digits);
+      result_line.back()[2] += " " + to_s(y, digits);     
+    }
+
+    if(result_line1[i] != '-'){ x++; }
+    if(result_line2[i] != '-'){ y++; }
+
+    local_i++;
+  }
 }
+
+// -------------------------------------------------------------------------------------------
 
 void SmithWaterman::print(){
 
@@ -371,56 +421,18 @@ void SmithWaterman::print_result(){
 // -------------------------------------------------------------------------------------------
 
 void SmithWaterman::print_result_sequence(){
+
   String txt("Result:");
-
-  int front_x = path_indexes.front().first;
-  int front_y = path_indexes.front().second;
-
-  int max_front = max(front_x, front_y);
-
-  int back_x = path_indexes.back().first;
-  int back_y = path_indexes.back().second;
-
-  int back_size = abs(back_x - back_y);
 
   cout << endl << endl;
   cout << txt.bold() << endl;
 
-  // Sequence 1
-  txt = "";
-  txt.resize(max_front, '-');
-  for(int i=0; i<front_x; i++){
-    txt[max_front-i-1] = sequence_1[i];
+  for(std::vector< std::vector<String> >::iterator it=result_line.begin(); it!=result_line.end(); ++it){
+    cout << (*it)[0] << endl;
+    cout << (*it)[1] << endl;
+    cout << (*it)[2] << endl;
+    cout << endl;
   }
-
-  cout << "    " << txt << result_line1.bold().green();
-
-  txt = "";
-  txt.resize(back_size, '-');
-  for(int i=0; (i+back_x)<sequence_1.size(); i++){
-    txt[i] = sequence_1[i+back_x];
-  }
-
-  cout << txt << endl;
-
-
-
-  // Sequence 2
-  txt = "";
-  txt.resize(max_front, '-');
-  for(int i=0; i<front_y; i++){
-    txt[max_front-i-1] = sequence_2[i];
-  }
-
-  cout << "    " << txt << result_line2.bold().green();
-
-  txt = "";
-  txt.resize(back_size, '-');
-  for(int i=0; (i+back_y)<sequence_2.size(); i++){
-    txt[i] = sequence_2[i+back_y];
-  }
-
-  cout << txt << endl;
 }
 
 

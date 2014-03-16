@@ -6,6 +6,7 @@ extern const int PRINT_LEVEL;
 extern const int GAP_PENALTY;
 extern const int MATCH;
 extern const int MISMATCH;
+extern const int CHAR_PER_ROW;
 
 class Setting{
 
@@ -15,6 +16,7 @@ class Setting{
                 static int mismatch;
                 static int gap_penalty;
                 static int print_level;
+                static int char_per_row;
 
                 Setting();
                ~Setting();

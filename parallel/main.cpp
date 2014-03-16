@@ -3,6 +3,8 @@
 
 #include <stdlib.h>
 #include <iostream>
+#include <iomanip>
+#include <sstream>
 #include <string>
 #include <vector>
 #include <bitset>
@@ -24,7 +26,16 @@ const int THREAD_COUNT =  2;
 const int MATCH        =  5;
 const int MISMATCH     = -3;
 const int GAP_PENALTY  = -4;
-const int PRINT_LEVEL  =  0; 
+const int PRINT_LEVEL  =  0;
+const int CHAR_PER_ROW = 50;
+
+// -------------------------------------------------------------------------------------------
+
+string to_s(int x, int digits=1){
+  ostringstream tmp;
+  tmp << setw(digits) << x;
+  return tmp.str();
+}
 
 // -------------------------------------------------------------------------------------------
 

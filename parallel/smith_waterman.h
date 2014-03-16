@@ -4,6 +4,8 @@
 class String;
 class BitArray;
 
+std::string to_s(int x, int digits);
+
 class SmithWaterman{
 
   String sequence_1;
@@ -14,8 +16,8 @@ class SmithWaterman{
 
   long best_score;
 
-  String result_line1;
-  String result_line2;
+  // String result_line;
+  std::vector< std::vector<String> > result_line;
 
   std::vector<BitArray> directions;
 
