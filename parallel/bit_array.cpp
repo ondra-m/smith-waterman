@@ -20,6 +20,21 @@ BitArray::~BitArray(){
 
 // -------------------------------------------------------------------------------------------
 
+const int BitArray::operator[](int id) const{
+
+  int to_return=0;
+
+  id *= bits;
+
+  for(int i=0; i<bits; i++){
+    to_return += (data[id+i]) << i;
+  }
+
+  return to_return;
+}
+
+// -------------------------------------------------------------------------------------------
+
 void BitArray::make(int bits, int size, char value){
 
   this -> bits = bits;
@@ -152,7 +167,7 @@ void BitArray::test(){
 
   BitArray array;
 
-  array.make(2, 20);
+  array.make(3, 20);
 
   array.set(3, 2);
   array.set(1, 3);
@@ -193,6 +208,16 @@ void BitArray::test(){
   cout << (array.compare(3, 1) == true  ? _true : _false) << endl;
   cout << (array.compare(3, 2) == false ? _true : _false) << endl;
   cout << (array.compare(3, 3) == false ? _true : _false) << endl;
+
+  array.set(3, 4);
+  array.set(4, 6);
+  array.set(8, 7);
+
+  cout << endl;
+  cout << (array[2] == 0 ? _true : _false) << endl;
+  cout << (array[3] == 4 ? _true : _false) << endl;
+  cout << (array[4] == 6 ? _true : _false) << endl;
+  cout << (array[8] == 7 ? _true : _false) << endl;
 }
 
 // -------------------------------------------------------------------------------------------

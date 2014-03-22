@@ -11,6 +11,8 @@ class BitArray{
          BitArray();
         ~BitArray();
 
+    const int operator[](int id) const;
+
     void make(int bits, int size, char value=0);
 
     void set(int id, char value);
