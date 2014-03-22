@@ -48,9 +48,7 @@ int main(int argc, char * argv[]){
 
   SmithWaterman sw;
   sw.load(argv[1], argv[2]);
-  sw.fill();
-  sw.find_path();
-
+  sw.run();
   sw.print();
 
   double t2 = omp_get_wtime();
