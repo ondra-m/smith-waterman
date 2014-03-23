@@ -7,7 +7,9 @@ class DNA;
 
 std::string to_s(int x, int digits=0);
 
-
+// ================================================================
+// Point
+// ================================================================
 struct Point{
   int x;
   int y;
@@ -18,6 +20,11 @@ struct Point{
   }
 };
 
+
+
+// ================================================================
+// Score
+// ================================================================
 struct Score : Point{
   long value;
 
@@ -26,6 +33,11 @@ struct Score : Point{
   }
 };
 
+
+
+// ================================================================
+// Path
+// ================================================================
 struct Path{
   long value;
 
@@ -47,6 +59,10 @@ struct Path{
 };
 
 
+
+// ================================================================
+// SmithWaterman
+// ================================================================
 class SmithWaterman{
 
   static const int MARK_MATCH     = 1;
@@ -87,9 +103,6 @@ class SmithWaterman{
     long get_insertion(int local_x, int local_y, std::vector<long> &current_column, std::vector<long> &prev_snake_diagonal_y);
 
     void print(double duration=0);
-    void print_result();
-    void print_result_sequence();
-    void print_path();
     void print_matrices();
 };
 
