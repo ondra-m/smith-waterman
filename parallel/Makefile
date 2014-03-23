@@ -5,8 +5,8 @@ CFLAGS = -O3 -fopenmp
 
 all: clean main clean2 new_line
 
-main: main.o getopt_pp.o setting.o smith_waterman.o dna_file.o string.o bit_array.o
-	$(CC) $(CFLAGS) main.o getopt_pp.o setting.o smith_waterman.o dna_file.o string.o bit_array.o -o a.out
+main: main.o getopt_pp.o setting.o smith_waterman.o dna.o string.o bit_array.o
+	$(CC) $(CFLAGS) main.o getopt_pp.o setting.o smith_waterman.o dna.o string.o bit_array.o -o a.out
 
 main.o: main.cpp
 	$(CC) $(CFLAGS) -c main.cpp -o main.o
@@ -20,8 +20,8 @@ setting.o: setting.cpp
 smith_waterman.o: smith_waterman.cpp
 	$(CC) $(CFLAGS) -c smith_waterman.cpp -o smith_waterman.o
 
-dna_file.o: dna_file.cpp
-	$(CC) $(CFLAGS) -c dna_file.cpp -o dna_file.o
+dna.o: dna.cpp
+	$(CC) $(CFLAGS) -c dna.cpp -o dna.o
 
 string.o: string.cpp
 	$(CC) $(CFLAGS) -c string.cpp -o string.o

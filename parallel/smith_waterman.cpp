@@ -1,6 +1,7 @@
 #include <iostream>
 #include <fstream>
 #include <vector>
+#include <iomanip>
 #include <algorithm>
 #include <string>
 #include <cmath>
@@ -9,8 +10,8 @@
 
 #include "string.h"
 #include "setting.h"
+#include "dna.h"
 #include "smith_waterman.h"
-#include "dna_file.h"
 #include "bit_array.h"
 
 using namespace std;
@@ -19,10 +20,9 @@ using namespace std;
 
 SmithWaterman::SmithWaterman(){
   best_score = 0;
+  best_path_value = 0;
 
-  path_indexes.resize(1);
-  path_indexes[0].first  = 0;
-  path_indexes[0].second = 0;
+  result = "";
 }
 
 // -------------------------------------------------------------------------------------------
@@ -31,37 +31,26 @@ SmithWaterman::~SmithWaterman(){}
 
 // -------------------------------------------------------------------------------------------
 
-bool SmithWaterman::load(char * file1, char * file2){
-  DNAFile file;
+bool SmithWaterman::load(DNA sequence_1, DNA sequence_2){
 
-  file.set(file1);
-  file.open();
-  sequence_1 = file.get_line();
-  file.close();
-
-  file.set(file2);
-  file.open();
-  sequence_2 = file.get_line();
-  file.close();
-
-  if(sequence_1.size() < sequence_2.size()){
-    sequence_1.swap(sequence_2);
+  // Sequence 1 should be larger than sequence 2
+  if(sequence_1.size() > sequence_2.size()){
+    this -> sequence_1 = sequence_1;
+    this -> sequence_2 = sequence_2;
+  }
+  else{
+    this -> sequence_2 = sequence_1;
+    this -> sequence_1 = sequence_2;
   }
 
-  if(Setting::print_level >= 4){
-    cout << "Sequence 1: " << sequence_1.bold() << endl;
-    cout << "Sequence 2: " << sequence_2.bold() << endl;
+  if(Setting::debug){
+    cout << "Sequence 1: " << this->sequence_1.bold() << endl;
+    cout << "Sequence 2: " << this->sequence_2.bold() << endl;
     cout << endl;
   }
 
-  size_x = sequence_1.size() + 1; // +1=first row is filled with 0
-  size_y = sequence_2.size() + 1; // +1=first column is filled with 0
-}
-
-// -------------------------------------------------------------------------------------------
-
-bool SmithWaterman::prepare_variables(){
-
+  size_x = this->sequence_1.size() + 1; // +1=first row is filled with 0
+  size_y = this->sequence_2.size() + 1; // +1=first column is filled with 0
 }
 
 // -------------------------------------------------------------------------------------------
@@ -78,12 +67,12 @@ bool SmithWaterman::prepare_variables(){
 // |                     |                     
 // |                     |                     
 //
-bool SmithWaterman::fill(){
+bool SmithWaterman::run(){
 
-  prepare_variables();
-
-  // ===== private for all threads =============================
-    int iteration, max_value_x, max_value_y, start_y, end_y, i, direction;
+  // ================================================================
+  // private for all threads
+  // ================================================================
+    int iteration, start_y, end_y, i, direction;
     int x, y, local_x, local_y, local_size_y;
     int thread_count, thread_id, last;
     long max_value, value, match, deletion, insertion;
@@ -91,9 +80,12 @@ bool SmithWaterman::fill(){
     // for local calculation
     std::vector<long> current_column;
     std::vector<long> prev_column;
+    std::vector<Score> local_scores;
 
 
-  // ===== shared for all threads ==============================
+  // ================================================================
+  // shared for all threads
+  // ================================================================
 
     // velikost jsou pro y
     // pro všechny jádra kromě poledního
@@ -104,8 +96,8 @@ bool SmithWaterman::fill(){
     //                1 -> current square
     // third index = values
     std::vector< std::vector< std::vector<long> > > snake_diagonal_y;
-
     std::vector<BitArray> _directions;
+    std::vector<Score> all_scores;
 
     _directions.resize(size_x);
 
@@ -114,12 +106,15 @@ bool SmithWaterman::fill(){
     }
 
 
-  // Parallel ==================================================
+
+  // ================================================================
+  // Parallel
+  // ================================================================
   #pragma omp parallel num_threads(Setting::thread_count) \
-                       private(iteration, max_value, max_value_x, max_value_y, start_y, end_y, x, y, local_x, local_y, i, \
+                       private(iteration, max_value, start_y, end_y, x, y, local_x, local_y, i, \
                                match, deletion, insertion, value, direction, thread_count, thread_id, last, local_size_y, \
-                               current_column, prev_column) \
-                       shared(local_size_x, snake_diagonal_y, _directions)
+                               current_column, prev_column, local_scores) \
+                       shared(local_size_x, snake_diagonal_y, _directions, all_scores)
   {
 
     thread_count = omp_get_num_threads();
@@ -161,7 +156,7 @@ bool SmithWaterman::fill(){
     }
 
 
-    max_value = 0;
+    max_value = -1;
     start_y = (thread_id * local_size_x) + 1;
     end_y   = start_y + local_size_y;
 
@@ -202,11 +197,16 @@ bool SmithWaterman::fill(){
 
           _directions[x].set(y, direction);
 
-          // member coordinates of larges number
-          if(value >= max_value){
-            max_value   = value;
-            max_value_x = x;
-            max_value_y = y;
+          // reset previous result if theres is better than old ones
+          if(value > max_value){
+            local_scores.clear();
+
+            max_value = value;
+          }
+          if(value == max_value){
+            Score s(value, x, y);
+
+            local_scores.push_back(s);
           }
 
           y++;
@@ -230,16 +230,18 @@ bool SmithWaterman::fill(){
       if(max_value >= best_score){
         best_score = max_value;
 
-        path_indexes[0].first  = max_value_x;
-        path_indexes[0].second = max_value_y;
+        all_scores.reserve(local_scores.size());
+        all_scores.insert(all_scores.end(), local_scores.begin(), local_scores.end());
       }
     }
 
   }
   // End parallel ==============================================
 
-
   directions = _directions;
+
+  prepare_scores(all_scores);
+  find_path(all_scores);
 }
 
 // -------------------------------------------------------------------------------------------
@@ -265,9 +267,11 @@ long SmithWaterman::get(long match, long deletion, long insertion, int &directio
 
   direction = 0;
 
-  if     (_max == match)     { direction = 1; }
-  else if(_max == insertion) { direction = 2; }
-  else if(_max == deletion)  { direction = 3; }
+  if(_max == 0){ return 0; }
+
+  if     (_max == match)    { direction = MARK_MATCH;     }
+  else if(_max == deletion) { direction = MARK_DELETION;  }
+  else if(_max == insertion){ direction = MARK_INSERTION; }
 
   return _max;
 }
@@ -305,92 +309,164 @@ long SmithWaterman::get_insertion(int local_x, int local_y, std::vector<long> &c
 
 // -------------------------------------------------------------------------------------------
 
-bool SmithWaterman::find_path(){
+void SmithWaterman::find_path(std::vector<Score> &all_scores){
 
-  // Constructing result path
-  // ------------------------
+  for(std::vector<Score>::iterator score=all_scores.begin(); score!=all_scores.end(); ++score){
+    make_path(*score);
+  }
 
-  String result_line1("");
-  String result_line2("");
+  for(std::vector<Path>::iterator path=paths.begin(); path!=paths.end(); ++path){
 
-  int x = path_indexes[0].first;
-  int y = path_indexes[0].second;
+    if((*path).value == best_path_value){
+      best_path = &(*path);
+      break;
+    }
+  }
 
-  int biggest_number = max(x, y);
-  int digits = 0;
-  do { biggest_number /= 10; digits++; } while (biggest_number != 0);
+  make_result();
+}
+
+// -------------------------------------------------------------------------------------------
+//
+// Remove redundant and keep only highest scores
+//
+void SmithWaterman::prepare_scores(std::vector<Score> &all_scores){
+  // long max_value = 0;
+
+  // // find max value
+  // for(int i=0; i<all_scores.size(); i++){
+  //   long value = all_scores[i].value;
+
+  //   if(value > max_value){
+  //     max_value = value;
+  //   }
+  // }
+
+  // remove all except value == max_value
+  std::vector<Score>::iterator it = all_scores.begin();
+  while(it != all_scores.end()){
+    if((*it).value != best_score){
+      it = all_scores.erase(it);
+    }
+    else{
+      ++it;
+    }
+  }
+
+}
+
+// -------------------------------------------------------------------------------------------
+//
+// Constructing result path
+//
+// x, y is +1 because of first row and column filled with zero
+//
+void SmithWaterman::make_path(Score &score){
+
+  Path path;
+
+  int x = score.x;
+  int y = score.y;
+
+  bool end=false;
 
   do{
 
-    if(directions[x].compare(y, 1)){
-      x--;
-      y--;
+    path.add(x, y);
 
-      result_line1 += sequence_1[x];
-      result_line2 += sequence_2[y];
+    switch(directions[x][y]){
+      case 0:
+        end = true;
+        break;
+
+      case MARK_MATCH:
+        x--;
+        y--;
+
+        path.result_line1 += sequence_1[x];
+        path.result_line2 += sequence_2[y];
+
+        path.value += (sequence_1[x] == sequence_2[y]) ? Setting::match : Setting::mismatch;
+        break;
+
+      case MARK_INSERTION:
+        y--;
+
+        path.result_line1 += '-';
+        path.result_line2 += sequence_2[y];
+
+        path.value += Setting::gap_penalty;
+        break;
+
+      case MARK_DELETION:
+        x--;
+
+        path.result_line1 += sequence_1[x];
+        path.result_line2 += '-';
+
+        path.value += Setting::gap_penalty;
+        break;
     }
-    else if(directions[x].compare(y, 2)){
-      y--;
 
-      result_line1 += "-";
-      result_line2 += sequence_2[y];
-    }
-    else if(directions[x].compare(y, 3)){
-      x--;
+  } while(!end);
 
-      result_line1 += sequence_1[x];
-      result_line2 += "-";
-    }
-    else{
-      break;
-    }
+  std::reverse(path.points.begin(), path.points.end());
+  std::reverse(path.result_line1.begin(), path.result_line1.end());
+  std::reverse(path.result_line2.begin(), path.result_line2.end());
 
-    path_indexes.push_back(make_pair(x, y));
+  if(path.value > best_path_value){
+    best_path_value = path.value;
+  }
 
-  } while(true);
+  paths.push_back(path);
+}
 
-  std::reverse(path_indexes.begin(), path_indexes.end());
-  std::reverse(result_line1.begin(), result_line1.end());
-  std::reverse(result_line2.begin(), result_line2.end());
+// -------------------------------------------------------------------------------------------
 
+void SmithWaterman::make_result(){
 
+  String result1;
+  String result2;
+  String result3;
 
-
-  // Constructing result seqence
-  // ---------------------------
+  int biggest_number = max((best_path -> points).back().x, (best_path -> points).back().y);
+  int digits = 0;
+  do { biggest_number /= 10; digits++; } while (biggest_number != 0);
   
-  x = path_indexes[0].first;
-  y = path_indexes[0].second;
-
+  int x = (best_path -> points).front().x;
+  int y = (best_path -> points).front().y;
 
   int local_i = 0;
 
-  for(int i=0; i<result_line1.size(); i++){
+  for(int i=0; i<(best_path -> result_line1).size(); i++){
   
     if(local_i == 0){
-      std::vector<String> tmp;
-      tmp.resize(3);
-
-      tmp[0] = to_s(x, digits) + " ";
-      tmp[1] = string(digits+1, ' ');
-      tmp[2] = to_s(y, digits) + " ";
-
-      result_line.push_back(tmp);
+      result1 = to_s(x, digits) + " ";
+      result2 = string(digits+1, ' ');
+      result3 = to_s(y, digits) + " ";
     }
 
-    result_line.back()[0] += result_line1[i];
-    result_line.back()[1] += (result_line1[i] == result_line2[i] ? '|' : ' ');
-    result_line.back()[2] += result_line2[i];
+    result1 += (best_path->result_line1)[i];
+    result2 += ((best_path->result_line1)[i] == (best_path->result_line2)[i] ? '|' : ' ');
+    result3 += (best_path->result_line2)[i];
 
-    if(local_i == Setting::char_per_row || (i+1) == result_line1.size()){
+    if(local_i == Setting::char_per_row || (i+1) == (best_path->result_line1).size()){
       local_i = -1;
 
-      result_line.back()[0] += " " + to_s(x, digits);
-      result_line.back()[2] += " " + to_s(y, digits);     
+      result1 += " " + to_s(x, digits);
+      result3 += " " + to_s(y, digits);
+
+      result += result1;
+      result += '\n';
+      result += result2;
+      result += '\n';
+      result += result3;
+      result += '\n';
+      result += '\n';
     }
 
-    if(result_line1[i] != '-'){ x++; }
-    if(result_line2[i] != '-'){ y++; }
+    if((best_path->result_line1)[i] != '-'){ x++; }
+    if((best_path->result_line2)[i] != '-'){ y++; }
 
     local_i++;
   }
@@ -398,57 +474,28 @@ bool SmithWaterman::find_path(){
 
 // -------------------------------------------------------------------------------------------
 
-void SmithWaterman::print(){
+void SmithWaterman::print(double duration){
 
-  switch(Setting::print_level){
-    case 6:
-    case 5:
-    case 4:
-    case 3: print_matrices();
-    case 2: print_path();
-    case 1: print_result_sequence();
-    case 0: print_result();
+  if(Setting::debug){
+    print_matrices();
   }
-}
 
-// -------------------------------------------------------------------------------------------
+  cout << "Match: " << Setting::match << endl;
+  cout << "Mismatch: " << Setting::mismatch << endl;
+  cout << "Gap penalty: " << Setting::gap_penalty << endl;
 
-void SmithWaterman::print_result(){
+  cout << "Size of #1: " << sequence_1.size() << endl;
+  cout << "Size of #2: " << sequence_2.size() << endl;
 
-  cout << "\nBest score: " << best_score << endl;
-}
+  cout << "Score: " << best_score << endl;
+  cout << "Finded path: " << paths.size() << endl;
 
-// -------------------------------------------------------------------------------------------
+  cout << "Thread: " << Setting::thread_count << endl;
+  cout << "Time: " << duration << "s" << endl;
 
-void SmithWaterman::print_result_sequence(){
-
-  String txt("Result:");
-
-  cout << endl << endl;
-  cout << txt.bold() << endl;
-
-  for(std::vector< std::vector<String> >::iterator it=result_line.begin(); it!=result_line.end(); ++it){
-    cout << (*it)[0] << endl;
-    cout << (*it)[1] << endl;
-    cout << (*it)[2] << endl;
-    cout << endl;
-  }
-}
-
-
-// -------------------------------------------------------------------------------------------
-
-void SmithWaterman::print_path(){
-  String txt("Path:");
-
-  cout << endl << endl;
-  cout << txt.bold() << endl;
-
-  cout << "     ";
-  for(std::vector< pair<int,int> >::iterator it=path_indexes.begin(); it!=path_indexes.end(); ++it){
-    cout << " → [" << (*it).first << "," << (*it).second << "]";
-  }
   cout << endl;
+
+  cout << result << endl;
 }
 
 // -------------------------------------------------------------------------------------------
@@ -466,19 +513,19 @@ void SmithWaterman::print_matrices(){
   // vertical header
   cout << "       ";
   for(int i=0; i<sequence_1.size(); i++){
-    cout << "  " << (i+1);
+    cout << "     " << (i+1);
   }
   cout << endl;
 
   cout << "       ";
   for(int i=0; i<sequence_1.size(); i++){
     txt = sequence_1[i];
-    cout << "  " << txt.bold();
+    cout << "     " << txt.bold();
   }
   cout << endl << endl;
 
   for(int y=1; y<size_y; y++){
-    cout << "   ";
+    cout << "    ";
 
     for(int x=1; x<size_x; x++){
 
@@ -490,12 +537,12 @@ void SmithWaterman::print_matrices(){
 
       txt = "";
 
-      if(directions[x].compare(y, 1)){ txt = "↖"; }
+      if     (directions[x].compare(y, 1)){ txt = "↖"; }
       else if(directions[x].compare(y, 2)){ txt = "↑"; }
       else if(directions[x].compare(y, 3)){ txt = "←"; }
       else { txt = " "; }
 
-      cout << "  " << txt;
+      cout << "   " << txt;
     }
 
     cout << endl;
