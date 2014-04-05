@@ -51,8 +51,37 @@ bool SmithWaterman::load(DNA sequence_1, DNA sequence_2){
     cout << endl;
   }
 
-  size_x = this->sequence_1.size() + 1; // +1=first row is filled with 0
-  size_y = this->sequence_2.size() + 1; // +1=first column is filled with 0
+  size_x = this->sequence_1.size();
+  size_y = this->sequence_2.size();
+}
+
+// -------------------------------------------------------------------------------------------
+
+bool SmithWaterman::prepare(CUDA_params &params){
+  // params.directions.size = ceil((float)sequence_2.size()/4.0); // 2-bit for 1 direction
+  params.directions.size = sequence_2.size(); // 2-bit for 1 direction
+  params.directions.data = new char[params.directions.size];
+
+  params.sequence_1.data = sequence_1.to_char();
+  params.sequence_2.data = sequence_2.to_char();
+
+  params.sequence_1.size = size_x;
+  params.sequence_2.size = size_y;
+
+  params.cuda.match = Setting::match;
+  params.cuda.mismatch = Setting::mismatch;
+  params.cuda.gap_penalty = Setting::gap_penalty;
+
+  params.cuda.cells_per_thread = 4;
+  params.cuda.threads_count = size_y / params.cuda.cells_per_thread;
+  params.cuda.threads_per_block = 2;
+  params.cuda.blocks_count = params.cuda.threads_count / params.cuda.threads_per_block;
+
+  directions.resize(size_x);
+
+  for(int x=0; x<size_x; x++){
+    directions[x].make(2, size_y, 0);
+  }
 }
 
 // -------------------------------------------------------------------------------------------
@@ -61,51 +90,40 @@ bool SmithWaterman::run(){
 
   CUDA_params params;
 
-
-
-  // params.directions.size = ceil((float)sequence_2.size()/4.0); // 2-bit for 1 direction
-  params.directions.size = sequence_2.size(); // 2-bit for 1 direction
-  params.directions.data = new char[params.directions.size];
-
-  params.sequence_1.data = sequence_1.to_char();
-  params.sequence_2.data = sequence_2.to_char();
-
-  params.sequence_1.size = sequence_1.size();
-  params.sequence_2.size = sequence_2.size();
-
-  params.cuda.match = Setting::match;
-  params.cuda.mismatch = Setting::mismatch;
-  params.cuda.gap_penalty = Setting::gap_penalty;
-
-
+  prepare(params);
 
   CUDA_init(params);
 
 
 
 
-
-
-    directions.resize(size_x);
-
-    for(int x=0; x<size_x; x++){
-      directions[x].make(2, size_y, 0);
-    }
-
-
-
-  for(int iteration=0; iteration<sequence_1.size(); iteration++){
+  for(int iteration=0; iteration<(size_x+(size_y/params.cuda.threads_count)); iteration++){
     
     params.cuda.iteration = iteration;
 
     CUDA_run(params);
 
-    for(int i=0; i<params.directions.size; i++){
-      directions[iteration].set(i, params.directions.data[i]);
+    for(int thread=0; thread<params.cuda.threads_count; thread++){
+      int x = iteration - thread;
+      int y = thread * params.cuda.cells_per_thread;
+      int end_y = y + params.cuda.cells_per_thread;
 
-      // cout << (int)params.directions.data[i] << endl;
+      while(y < end_y && x >= 0 && x < size_x){
+        directions[x].set(y, params.directions.data[y]);
+
+        y++;
+      }
     }
-    // cout << endl;
+
+    // int x = iteration;
+    // while(x >= 0 && x < size_x){
+    //   for(int i=0; i<params.cuda.cells_per_thread; i++){
+    //     directions[x].set(i, params.directions.data[i]);
+    //   }
+
+    //   x--;
+    // }
+
   }
 
 
@@ -563,13 +581,13 @@ void SmithWaterman::print_matrices(){
 
   // vertical header
   cout << "        ";
-  for(int i=0; i<sequence_1.size(); i++){
-    cout << "   " << (i+1);
+  for(int i=0; i<size_x; i++){
+    cout << "   " << i;
   }
   cout << endl;
 
   cout << "        ";
-  for(int i=0; i<sequence_1.size(); i++){
+  for(int i=0; i<size_x; i++){
     txt = sequence_1[i];
     cout << "   " << txt.bold();
   }
@@ -577,10 +595,10 @@ void SmithWaterman::print_matrices(){
 
 
 
-  for(int y=0; y<size_y-1; y++){
+  for(int y=0; y<size_y; y++){
     cout << "    ";
 
-    for(int x=0; x<size_x-1; x++){
+    for(int x=0; x<size_x; x++){
 
       // horizontal header
       if(x == 0){

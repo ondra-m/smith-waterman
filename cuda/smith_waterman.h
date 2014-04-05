@@ -94,6 +94,7 @@ class SmithWaterman{
         ~SmithWaterman();
 
     bool load(DNA sequence_1, DNA sequence_2);  
+    bool prepare(CUDA_params &params);
     bool run();
 
     void find_path(std::vector<Score> &all_scores);

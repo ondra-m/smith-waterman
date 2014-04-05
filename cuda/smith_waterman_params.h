@@ -8,30 +8,40 @@ struct Directions{
   int size;
 };
 
+struct Column{
+  long * current;
+  long * prev;
+  long * before_prev;
+  int size;
+};
+
 struct CUDA{
+  Column column;
+
   char * sequence_1;
   char * sequence_2;
-
-  long * current_column;
-  long * prev_column;
-
   char * directions;
 
   int iteration;
-  int row_count;
-
+  int rows_count;
+  int columns_count;
   int match;
   int mismatch;
   int gap_penalty;
+
+  int threads_count;
+  int blocks_count;
+  int threads_per_block;
+  int cells_per_thread;
 };
 
 struct CUDA_params{
+  CUDA cuda;
+
   Sequence sequence_1;
   Sequence sequence_2;
 
   Directions directions;
 
   int column_size;
-
-  CUDA cuda;
 };
