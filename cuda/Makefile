@@ -1,5 +1,5 @@
 CC     = nvcc
-CFLAGS = 
+CFLAGS = -O3 -gencode=arch=compute_20,code=compute_20
 
 all: clean main clean2 new_line
 

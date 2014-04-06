@@ -41,7 +41,7 @@ __global__ void run(CUDA params){
 
 
 
-  while(y < end_y && x >= 0 && x < params.columns_count){
+  while(y < end_y && y <= params.rows_count && x >= 0 && x < params.columns_count){
     match = (first == true ? params.column.before_prev : params.column.prev)[y-1] + (params.sequence_1[x] == params.sequence_2[y-1] ? params.match : params.mismatch);
     deletion = params.column.prev[y] + params.gap_penalty;
     insertion = (first == true ? params.column.prev : params.column.current)[y-1] + params.gap_penalty;
@@ -79,7 +79,7 @@ void CUDA_init(CUDA_params &params){
   cudaMalloc( (void**)&params.cuda.column.current, params.cuda.column.size );
   cudaMalloc( (void**)&params.cuda.column.prev,    params.cuda.column.size );
   cudaMalloc( (void**)&params.cuda.column.before_prev, params.cuda.column.size );
-  cudaMalloc( (void**)&params.cuda.directions,     params.directions.size ); 
+  cudaMalloc( (void**)&params.cuda.directions,     params.directions_size ); 
 
   cudaMemcpy( params.cuda.sequence_1, params.sequence_1.data, params.sequence_1.size, cudaMemcpyHostToDevice );
   cudaMemcpy( params.cuda.sequence_2, params.sequence_2.data, params.sequence_2.size, cudaMemcpyHostToDevice );
@@ -107,11 +107,13 @@ void CUDA_delete(CUDA_params &params){
 // -------------------------------------------------------------------------------------------
 void CUDA_run(CUDA_params &params){
 
-  cudaMemset( params.cuda.directions, 0, params.directions.size );
+  cudaMemset( params.cuda.directions, 0, params.directions_size );
   cudaMemcpy( params.cuda.column.before_prev, params.cuda.column.prev, params.cuda.column.size, cudaMemcpyDeviceToDevice );
   cudaMemcpy( params.cuda.column.prev, params.cuda.column.current, params.cuda.column.size, cudaMemcpyDeviceToDevice );
+  cudaMemset( params.cuda.column.current, 0, params.cuda.column.size );
 
   run<<<params.cuda.blocks_count, params.cuda.threads_per_block>>>(params.cuda);
 
-  cudaMemcpy( params.directions.data, params.cuda.directions, params.directions.size, cudaMemcpyDeviceToHost );
+  cudaMemcpy( params.result.directions, params.cuda.directions, params.directions_size, cudaMemcpyDeviceToHost );
+  cudaMemcpy( params.result.column, params.cuda.column.current, params.cuda.column.size, cudaMemcpyDeviceToHost );
 }

@@ -79,6 +79,8 @@ class SmithWaterman{
   int size_x;
   int size_y;
 
+  int threads_count;
+
   long best_score;
   long best_path_value;
 
@@ -98,14 +100,8 @@ class SmithWaterman{
     bool run();
 
     void find_path(std::vector<Score> &all_scores);
-    void prepare_scores(std::vector<Score> &all_scores);
     void make_path(Score &score);
     void make_result();
-
-    long get(long match, long deletion, long insertion, int &direction);
-    long get_match(int x, int y, int local_x, int local_y, std::vector<long> &prev_column, std::vector<long> &prev_snake_diagonal_y);
-    long get_deletion(int local_y, std::vector<long> &prev_column);
-    long get_insertion(int local_x, int local_y, std::vector<long> &current_column, std::vector<long> &prev_snake_diagonal_y);
 
     void print(double duration=0);
     void print_matrices();

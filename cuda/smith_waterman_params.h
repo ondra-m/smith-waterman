@@ -4,8 +4,7 @@ struct Sequence{
 };
 
 struct Directions{
-  char * data;
-  int size;
+
 };
 
 struct Column{
@@ -35,13 +34,19 @@ struct CUDA{
   int cells_per_thread;
 };
 
+struct Result{
+  char * directions;
+  long * column;
+};
+
 struct CUDA_params{
   CUDA cuda;
 
   Sequence sequence_1;
   Sequence sequence_2;
 
-  Directions directions;
+  Result result;
 
   int column_size;
+  int directions_size;
 };

@@ -4,6 +4,7 @@
 #include <sstream>
 #include <string>
 #include <vector>
+#include <ctime>
 // #include <bitset>
 
 // #include <stdlib.h>
@@ -46,7 +47,7 @@ string to_s(int x, int digits){
 int main(int argc, char * argv[]){
   // BitArray::test();
 
-  // double t1 = omp_get_wtime();
+  clock_t t1 = clock();
 
   Setting::parse(argc, argv);
 
@@ -58,9 +59,9 @@ int main(int argc, char * argv[]){
   sw.load(sequence_1, sequence_2);
   sw.run();
 
-  // double t2 = omp_get_wtime();
+  clock_t t2 = clock();
   
-  // sw.print(t2-t1);
+  sw.print(double(t2-t1)/CLOCKS_PER_SEC);
 
   return 0;
 }
