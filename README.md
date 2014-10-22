@@ -1,14 +1,7 @@
-http://software.intel.com/en-us/articles/32-openmp-traps-for-c-developers/
+# Smith-waterman
 
+Sequential: https://github.com/ondra-m/smith-waterman/tree/master/sequential
 
-Sequential:
+Parallel (OpenMP): https://github.com/ondra-m/smith-waterman/tree/master/parallel
 
-  test6:
-    classic run: 89 MB memory
-    optimized 1: 22 MB memory  // only with direction matrix
-    optimized 2: 6 MB memory   // direction matrix - char -> BitArray
-
-  test7:
-    classic run: > 25 GB memory
-    optimized: 1,5 GB memory
-               494,68s
+CUDA: https://github.com/ondra-m/smith-waterman/tree/master/cuda
